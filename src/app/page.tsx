@@ -3,15 +3,17 @@
 import { useSession,  signOut } from "next-auth/react";
 import { useState } from 'react';
 import Image from "next/image";
-import { User,SendHorizontal, Menu, SquarePen, Search,Bolt,LogOut,LogIn,X,Puzzle } from 'lucide-react';
+import { User,SendHorizontal, Menu, SquarePen, Search,Bolt,LogOut,LogIn,X,Puzzle, Loader2 } from 'lucide-react';
 import Link from 'next/link'
-
+import Quizz from './components/quizz';
 export default function Home() {
   const [prolileMenuOpen, setProfileMenuOpen] = useState(false);
   const [start, setStart] = useState(false);
   const [expand, setExpand] = useState(false);
+  
   const { data: session } = useSession();
- 
+
+  const [showQuiz, setShowQuiz] = useState(false);
  
 
   return (
@@ -60,7 +62,7 @@ export default function Home() {
               >
                 <LogOut className="text-red-600"/> 
                 <p className="hover:text-red-600">Logout</p>
-              </button> : <Link href="./Login">
+              </button> : <Link href="./login">
                   <div className="flex items-center space-x-[8px] cursor-pointer font-medium">
                     <LogIn className="text-red-600" />
                     <p className="hover:text-red-600">LogIn</p>
@@ -119,8 +121,12 @@ export default function Home() {
           <div className="w-full flex justify-between items-center mt-[5px]">
             <div className="flex space-x-[8px]">
               <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2">+ Add file</button>
-              <Link href="./quizz">
-              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"> <Puzzle className="size-[16px] mr-[4px]"/> Take quiz</button></Link>
+              <button
+              onClick={() => setShowQuiz(true)}
+              className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"
+            >
+              <Puzzle className="size-[16px] mr-[4px]"/> Take quiz
+            </button>
             </div>
             <SendHorizontal
               className="size-[25px] text-stone-300 cursor-pointer mb-[-10px]"
@@ -128,6 +134,23 @@ export default function Home() {
             />
           </div>
         </div>
+        {showQuiz && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn ">
+        <div className="relative bg-black/60 border border-white/10 rounded-2xl shadow-2xl w-full h-[400px] max-w-4xl p-6 backdrop-blur-md transition-transform transform scale-100 hover:scale-[1.01]">
+        <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
+          <button
+            onClick={() => setShowQuiz(false)}
+            className="absolute top-4 right-4 text-red-500   w-8 h-8 flex items-center justify-center hover:text-red-600 transition-colors"
+          >
+            ✕
+          </button>
+          <Quizz />
+        </div>
+      </div>
+
+        )}
+
       </main>
     </div>
   );

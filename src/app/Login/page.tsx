@@ -50,7 +50,7 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-center">Yoo, welcome back!</h1>
           <p className="text-center text-sm text-stone-400 mt-2">
             First time here?{" "}
-            <Link href='/Register' className="cursor-pointer hover:underline text-white">
+            <Link href='/register' className="cursor-pointer hover:underline text-white">
               Sign up for free
             </Link>
           </p>
