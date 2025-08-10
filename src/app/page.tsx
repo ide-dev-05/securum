@@ -1,15 +1,18 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession,  signOut } from "next-auth/react";
 import { useState } from 'react';
 import Image from "next/image";
 import { User,SendHorizontal, Menu, SquarePen, Search,Bolt,LogOut,LogIn,X,Puzzle } from 'lucide-react';
 import Link from 'next/link'
 
 export default function Home() {
+  const [prolileMenuOpen, setProfileMenuOpen] = useState(false);
   const [start, setStart] = useState(false);
   const [expand, setExpand] = useState(false);
   const { data: session } = useSession();
+ 
+ 
 
   return (
     <div className="font-sans flex items-center min-h-screen overflow-hidden">
@@ -30,14 +33,15 @@ export default function Home() {
       <main className="relative flex flex-col items-center w-[96%] min-h-screen">
         <p className="font-sans cursor-pointer absolute top-2 left-4 text-[22px] font-thin">Securum</p>
         
-          <Image
+         <button onClick={() => setProfileMenuOpen(!prolileMenuOpen)}>
+         <Image
             className="absolute top-4 right-4 rounded-[20px] cursor-pointer"
             src={session?.user?.image || "/assets/orb2.png"}
             alt="User Profile"
             height={30}
             width={40}
           />
-          <ul className="bg-white absolute right-4 top-15 rounded-md text-black w-[200px] p-3 space-y-[15px]">
+         {prolileMenuOpen && ( <ul className="bg-white absolute right-4 top-15 rounded-md text-black w-[200px] p-3 space-y-[15px]">
               <li className="flex items-center w-full space-x-[8px]">
                 <User/>
                 <div >
@@ -63,7 +67,8 @@ export default function Home() {
                   </div>
                 </Link>}
               </li>
-          </ul>
+          </ul>)}
+         </button>
 
         {start ? (
            <div className="text-center flex flex-col items-center mt-[50px] w-[800px]">
@@ -114,7 +119,8 @@ export default function Home() {
           <div className="w-full flex justify-between items-center mt-[5px]">
             <div className="flex space-x-[8px]">
               <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2">+ Add file</button>
-              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"> <Puzzle className="size-[16px] mr-[4px]"/> Take quiz</button>
+              <Link href="./quizz">
+              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"> <Puzzle className="size-[16px] mr-[4px]"/> Take quiz</button></Link>
             </div>
             <SendHorizontal
               className="size-[25px] text-stone-300 cursor-pointer mb-[-10px]"
