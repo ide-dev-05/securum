@@ -18,7 +18,9 @@
     "next": "15.4.5",
     "next-auth": "^4.24.11",
     "react": "19.1.0",
+    "react-audio-visualize": "^1.2.0",
     "react-dom": "19.1.0",
+    "react-tooltip": "^5.29.1",
     "typewriter-effect": "^2.22.0"
   },
   "devDependencies": {

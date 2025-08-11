@@ -1,46 +1,122 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   User,
   SendHorizontal,
-  Menu,
-  SquarePen,
-  Search,
   Bolt,
   LogOut,
   LogIn,
   X,
   Puzzle,
-  Mic
+  Mic,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
+  RefreshCcw,
+  
 } from "lucide-react";
 import Link from "next/link";
 import Quizz from "./component/quizz";
+import Sidebar from "./component/sidebar";
+declare global {
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    maxAlternatives: number;
+    start(): void;
+    stop(): void;
+    abort(): void;
+    onaudioend?: (event: Event) => void;
+    onaudiostart?: (event: Event) => void;
+    onend?: (event: Event) => void;
+    onerror?: (event: SpeechRecognitionEvent) => void;
+    onnomatch?: (event: Event) => void;
+    onresult?: (event: SpeechRecognitionEvent) => void;
+    onsoundend?: (event: Event) => void;
+    onsoundstart?: (event: Event) => void;
+    onspeechend?: (event: Event) => void;
+    onspeechstart?: (event: Event) => void;
+    onstart?: (event: Event) => void;
+  }
 
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+  }
+
+  interface Window {
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+  }
+}
 export default function Home() {
-  const [prolileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [expand, setExpand] = useState(false);
+  const [prolileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
+
   const { data: session } = useSession();
+  const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [messages, setMessages] = useState<{ type: string; text: string }[]>(
+    []
+  );
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingComplete, setRecdingComplete] = useState<boolean>(false);
+  const [transcript, setTranscript] = useState<string>("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const startRecording = () => {
+    setIsRecording(true);
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-  const [showQuiz, setShowQuiz] = useState(false);
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
+      const lastResult = e.results[e.results.length - 1][0].transcript;
+      setTranscript(lastResult);
+    };
 
- 
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+  const stopRecording = () => {
+    if(recognitionRef.current){
+      recognitionRef.current.stop();
+      setRecdingComplete(true);
+    }
+    if (transcript.trim() !== "") {
+      setMessages((prev) => [...prev, { type: "user", text: transcript }]);
+      setTranscript(""); 
+      setInput("");
+    }
+  };
 
- 
+  const handleRecording = () => {
+    setIsRecording(!isRecording);
+    if (!isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
   const handleSend = () => {
+    stopRecording()
     if (!input.trim()) return;
 
-   
     setMessages((prev) => [...prev, { type: "user", text: input }]);
     setInput("");
     setLoading(true);
 
-    
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
@@ -50,8 +126,11 @@ export default function Home() {
     }, 1500);
   };
 
-  // Handle Enter key
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: {
+    key: string;
+    shiftKey: unknown;
+    preventDefault: () => void;
+  }) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -60,47 +139,15 @@ export default function Home() {
 
   return (
     <div className="font-sans flex items-center min-h-screen overflow-hidden">
-
       <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
 
-      <div
-        className={`${
-          expand ? "w-[17%]" : "w-[4%]"
-        } min-h-screen border-r-[0.5px] border-stone-700 flex flex-col items-start pl-[1%] text-zinc-300`}
-      >
-        {expand ? (
-          <X
-            className="mt-3 ml-[10px] cursor-pointer"
-            onClick={() => setExpand(false)}
-          />
-        ) : (
-          <Menu
-            className="mt-3 cursor-pointer"
-            onClick={() => setExpand(true)}
-          />
-        )}
+      <Sidebar/>
 
-        <div className="mt-10 flex flex-col justify-start space-y-[15px]">
-          <div className="flex items-center justify-around space-x-[5px] w-full cursor-pointer ">
-            <SquarePen /> <p className={`${expand ? "block" : "hidden"}`}>New chat</p>
-          </div>
-          <div
-            className={`flex items-center justify-around space-x-[5px] w-full cursor-pointer ${
-              expand ? "ml-[8px]" : ""
-            }`}
-          >
-            <Search /> <p className={`ml-[15px] ${expand ? "block" : "hidden"}`}>Search chat</p>
-          </div>
-        </div>
-      </div>
-
- 
       <main className="relative flex flex-col items-center w-[96%] min-h-screen">
         <p className="font-sans cursor-pointer absolute top-2 left-4 text-[22px] font-thin">
           Securum
         </p>
-
 
         <button onClick={() => setProfileMenuOpen(!prolileMenuOpen)}>
           <Image
@@ -175,6 +222,14 @@ export default function Home() {
                     }`}
                   >
                     {msg.text}
+                    {msg.type === "bot" && (
+                      <div className="flex items-center space-x-2 mt-2 ">
+                        <Copy className="size-[16px] text-zinc-400 cursor-pointer" />
+                        <ThumbsUp className="size-[16px] text-green-500 cursor-pointer" />
+                        <ThumbsDown className="size-[16px] text-red-500 cursor-pointer" />
+                        <RefreshCcw className="size-[16px] text-zinc-400 cursor-pointer" />
+                      </div>
+                    )}
                   </p>
                 </div>
               ))}
@@ -182,54 +237,71 @@ export default function Home() {
               {/* Loading */}
               {loading && (
                 <div className="flex justify-start items-center space-x-2 mt-6 text-zinc-400">
-                  <Image alt="loading" src="/assets/orb2.png" width={18} height={18} className="animate-spin"/>
-                 
-                  <p>I'm thinking...</p>
+                  <Image
+                    alt="loading"
+                    src="/assets/orb2.png"
+                    width={18}
+                    height={18}
+                    className="animate-spin"
+                  />
+
+                  <p>I&apos;m thinking...</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-
- 
         <div
           className={`bg-[#1c1c1c] w-[800px] h-auto rounded-2xl p-4 mt-[30px] ${
             messages.length > 0 ? "absolute bottom-8" : ""
           }`}
         >
           <textarea
-            value={input}
+            value={input || transcript}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Securum"
             className="w-full resize-none min-h-[20px] focus:outline-none focus:ring-0 bg-transparent text-white"
           />
           <div className="w-full flex justify-between items-center mt-[5px]">
-            <div className="flex space-x-[8px]">
-              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2">
+            <div
+              className={`flex space-x-[8px] text-sm ${
+                isRecording ? "hidden" : ""
+              }`}
+            >
+              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 ">
                 + Add file
               </button>
               <button
                 onClick={() => setShowQuiz(true)}
                 className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"
               >
-                <Puzzle className="size-[16px] mr-[4px]" /> Take quiz
+                <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
               </button>
             </div>
-       
+
             <div className="flex items-center space-x-[10px]">
-              <Mic className="size-[20px] text-stone-300 cursor-pointer" />
+              {isRecording ? (
+                <X
+                  className="size-[20px] text-stone-300 cursor-pointer"
+                  onClick={handleRecording}
+                />
+              ) : (
+                <Mic
+                  className="size-[20px] text-stone-300 cursor-pointer"
+                  onClick={handleRecording}
+                />
+              )}
+
               <SendHorizontal
                 className="size-[20px] text-stone-300 cursor-pointer"
                 onClick={handleSend}
               />
             </div>
           </div>
-         
         </div>
 
-     
         {showQuiz && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
             <div className="relative bg-black/60 border border-white/10 rounded-2xl shadow-2xl w-full h-[400px] max-w-4xl p-6 backdrop-blur-md transition-transform transform scale-100 hover:scale-[1.01]">
