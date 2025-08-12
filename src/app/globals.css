@@ -28,3 +28,8 @@ body {
 button{
   cursor: pointer;
 }
+
+::-webkit-scrollbar {
+  height: 8px;
+  display:none;
+}

@@ -59,7 +59,7 @@ export default function Register() {
           <h1 className="text-3xl font-bold text-center">Warmly welcome!</h1>
           <p className="text-center text-sm text-stone-400 mt-2">
             Already have an account?{" "}
-            <Link href='/Login' className="cursor-pointer hover:underline text-white">
+            <Link href='./login' className="cursor-pointer hover:underline text-white">
               Log In
             </Link>
           </p>
