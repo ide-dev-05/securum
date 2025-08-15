@@ -1,10 +1,21 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { useSession } from "next-auth/react";
 import { useState, useRef, useEffect, useCallback } from "react";
+=======
+import { useSession, signOut } from "next-auth/react";
+import { useState, useRef, useEffect } from "react";
+>>>>>>> Stashed changes
 import Image from "next/image";
 import {
   SendHorizontal,
+<<<<<<< Updated upstream
+=======
+  Bolt,
+  LogOut,
+  LogIn,
+>>>>>>> Stashed changes
   X,
   Puzzle,
   Mic,
@@ -12,11 +23,18 @@ import {
   ThumbsUp,
   ThumbsDown,
   RefreshCcw,
+<<<<<<< Updated upstream
+=======
+  
+>>>>>>> Stashed changes
 } from "lucide-react";
 import Profile from "./component/profile";
 import Quizz from "./component/quizz";
 import Sidebar from "./component/sidebar";
+<<<<<<< Updated upstream
 import Loading from "./component/loading";
+=======
+>>>>>>> Stashed changes
 declare global {
   interface SpeechRecognition extends EventTarget {
     continuous: boolean;
@@ -38,16 +56,27 @@ declare global {
     onspeechstart?: (event: Event) => void;
     onstart?: (event: Event) => void;
   }
+<<<<<<< Updated upstream
   interface SpeechRecognitionEvent extends Event {
     results: SpeechRecognitionResultList;
   }
   interface Window {
     webkitSpeechRecognition?: {
+=======
+
+  interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+  }
+
+  interface Window {
+    webkitSpeechRecognition: {
+>>>>>>> Stashed changes
       new (): SpeechRecognition;
     };
   }
 }
 export default function Home() {
+<<<<<<< Updated upstream
   const { data: session } = useSession();
   const [showQuiz, setShowQuiz] = useState(false);
   const [messages, setMessages] = useState<{ type: "user" | "bot"; text: string }[]>([]);
@@ -125,10 +154,61 @@ export default function Home() {
       startRecording();
     }
   }, [isRecording, startRecording, stopRecording]);
+=======
+  const [prolileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
+
+  const { data: session } = useSession();
+  const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [messages, setMessages] = useState<{ type: string; text: string }[]>(
+    []
+  );
+  const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingComplete, setRecdingComplete] = useState<boolean>(false);
+  const [transcript, setTranscript] = useState<string>("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const startRecording = () => {
+    setIsRecording(true);
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
+      const lastResult = e.results[e.results.length - 1][0].transcript;
+      setTranscript(lastResult);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+  const stopRecording = () => {
+    if(recognitionRef.current){
+      recognitionRef.current.stop();
+      setRecdingComplete(true);
+    }
+    if (transcript.trim() !== "") {
+      setMessages((prev) => [...prev, { type: "user", text: transcript }]);
+      setTranscript(""); 
+      setInput("");
+    }
+  };
+
+  const handleRecording = () => {
+    setIsRecording(!isRecording);
+    if (!isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  };
+
+>>>>>>> Stashed changes
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+<<<<<<< Updated upstream
         recognitionRef.current = null;
       }
     };
@@ -142,6 +222,19 @@ export default function Home() {
     setMessages((prev) => [...prev, { type: "user", text: input }]);
     setInput("");
     setLoading(true);
+=======
+      }
+    };
+  }, []);
+  const handleSend = () => {
+    stopRecording()
+    if (!input.trim()) return;
+
+    setMessages((prev) => [...prev, { type: "user", text: input }]);
+    setInput("");
+    setLoading(true);
+
+>>>>>>> Stashed changes
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
@@ -149,6 +242,7 @@ export default function Home() {
       ]);
       setLoading(false);
     }, 1500);
+<<<<<<< Updated upstream
   }, [input, isRecording, stopRecording]);
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -169,6 +263,76 @@ export default function Home() {
           Securum
         </p>
         <Profile session={session} />
+=======
+  };
+
+  const handleKeyDown = (e: {
+    key: string;
+    shiftKey: unknown;
+    preventDefault: () => void;
+  }) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="font-sans flex items-center min-h-screen overflow-hidden">
+      <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
+
+      <Sidebar/>
+
+      <main className="relative flex flex-col items-center w-[96%] min-h-screen">
+        <p className="font-sans cursor-pointer absolute top-2 left-4 text-[22px] font-thin">
+          Securum
+        </p>
+
+        <button onClick={() => setProfileMenuOpen(!prolileMenuOpen)}>
+          <Image
+            className="absolute top-4 right-4 rounded-[20px] cursor-pointer"
+            src={session?.user?.image || "/assets/orb2.png"}
+            alt="User Profile"
+            height={30}
+            width={40}
+          />
+          {prolileMenuOpen && (
+            <ul className="bg-white absolute right-4 top-15 rounded-md text-black w-[200px] p-3 space-y-[15px]">
+              <li className="flex items-center w-full space-x-[8px]">
+                <User />
+                <div>
+                  <p>{session?.user?.name || "Guest"}</p>
+                  <small>{session?.user?.email || ""}</small>
+                </div>
+              </li>
+              <li className="flex items-center w-full space-x-[8px]">
+                <Bolt /> <p>12 Scores</p>
+              </li>
+              <hr className="h-[0.4px] text-zinc-300" />
+              <li>
+                {session ? (
+                  <button
+                    onClick={() => signOut()}
+                    className="flex items-center space-x-[8px] cursor-pointer font-medium"
+                  >
+                    <LogOut className="text-red-600" />
+                    <p className="hover:text-red-600">Logout</p>
+                  </button>
+                ) : (
+                  <Link href="./login">
+                    <div className="flex items-center space-x-[8px] cursor-pointer font-medium">
+                      <LogIn className="text-red-600" />
+                      <p className="hover:text-red-600">LogIn</p>
+                    </div>
+                  </Link>
+                )}
+              </li>
+            </ul>
+          )}
+        </button>
+
+>>>>>>> Stashed changes
         {messages.length === 0 ? (
           <div className="text-center flex flex-col items-center mt-[100px] w-[800px]">
             <Image src="/assets/orb2.png" alt="orb" height={200} width={220} />
@@ -202,6 +366,7 @@ export default function Home() {
                       msg.type === "user" ? "bg-zinc-700" : ""
                     }`}
                   >
+<<<<<<< Updated upstream
                     <p>{msg.text}</p>
                     {msg.type === "bot" && (
                       <div className="flex items-center gap-4 mt-2 p-1">
@@ -222,13 +387,50 @@ export default function Home() {
             </div>
           </div>
         )}
+=======
+                    {msg.text}
+                    {msg.type === "bot" && (
+                      <div className="flex items-center space-x-2 mt-2 ">
+                        <Copy className="size-[16px] text-zinc-400 cursor-pointer" />
+                        <ThumbsUp className="size-[16px] text-green-500 cursor-pointer" />
+                        <ThumbsDown className="size-[16px] text-red-500 cursor-pointer" />
+                        <RefreshCcw className="size-[16px] text-zinc-400 cursor-pointer" />
+                      </div>
+                    )}
+                  </p>
+                </div>
+              ))}
+
+              {/* Loading */}
+              {loading && (
+                <div className="flex justify-start items-center space-x-2 mt-6 text-zinc-400">
+                  <Image
+                    alt="loading"
+                    src="/assets/orb2.png"
+                    width={18}
+                    height={18}
+                    className="animate-spin"
+                  />
+
+                  <p>I&apos;m thinking...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+>>>>>>> Stashed changes
         <div
           className={`bg-[#1c1c1c] w-[800px] rounded-2xl p-4 mt-[30px] ${
             messages.length > 0 ? "absolute bottom-8" : ""
           }`}
         >
           <textarea
+<<<<<<< Updated upstream
             value={isRecording ? transcript : input}
+=======
+            value={input || transcript}
+>>>>>>> Stashed changes
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Securum"
@@ -236,8 +438,17 @@ export default function Home() {
             rows={2}
           />
           <div className="w-full flex justify-between items-center mt-[5px]">
+<<<<<<< Updated upstream
             <div className={`flex space-x-[8px] text-sm ${isRecording ? "hidden" : ""}`}>
               <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2">
+=======
+            <div
+              className={`flex space-x-[8px] text-sm ${
+                isRecording ? "hidden" : ""
+              }`}
+            >
+              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 ">
+>>>>>>> Stashed changes
                 + Add file
               </button>
               <button
@@ -247,18 +458,33 @@ export default function Home() {
                 <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
               </button>
             </div>
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             <div className="flex items-center space-x-[10px]">
               {isRecording ? (
                 <X
                   className="size-[20px] text-stone-300 cursor-pointer"
+<<<<<<< Updated upstream
                   onClick={handleRecording} 
+=======
+                  onClick={handleRecording}
+>>>>>>> Stashed changes
                 />
               ) : (
                 <Mic
                   className="size-[20px] text-stone-300 cursor-pointer"
+<<<<<<< Updated upstream
                   onClick={handleRecording}      
                 />
               )}
+=======
+                  onClick={handleRecording}
+                />
+              )}
+
+>>>>>>> Stashed changes
               <SendHorizontal
                 className="size-[20px] text-stone-300 cursor-pointer"
                 onClick={handleSend}    
@@ -266,6 +492,10 @@ export default function Home() {
             </div>
           </div>
         </div>
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         {showQuiz && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
             <div className="relative bg-black/60 border border-white/10 rounded-2xl shadow-2xl w-full h-[400px] max-w-4xl p-6 backdrop-blur-md transition-transform transform scale-100 hover:scale-[1.01]">
