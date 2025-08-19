@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-
 export default function Quizz() {
   const [quizzes, setQuizzes] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -11,20 +10,20 @@ export default function Quizz() {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
 
-
-useEffect(() => {
-  async function fetchQuizzes() {
-    try {
-      const res = await axios.get("/api/quizzes");
-      setQuizzes(res.data);
-    } catch (error) {
-      console.error("Failed to fetch quizzes:", error);
+  // Fetch quizzes on mount
+  useEffect(() => {
+    async function fetchQuizzes() {
+      try {
+        const res = await axios.get("/api/quizzes");
+        setQuizzes(res.data);
+      } catch (error) {
+        console.error("Failed to fetch quizzes:", error);
+      }
     }
-  }
-  fetchQuizzes();
-}, []);
+    fetchQuizzes();
+  }, []);
 
-
+  // Quiz timer logic
   useEffect(() => {
     if (finished || quizzes.length === 0) return;
     if (timer === 0) {
@@ -34,6 +33,21 @@ useEffect(() => {
     const interval = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer, finished, quizzes]);
+
+  // Post score when quiz finishes
+  useEffect(() => {
+    if (finished) {
+      async function postScore() {
+        try {
+          await axios.post("/api/scores", { gainedScore: score });
+          console.log("Score updated successfully");
+        } catch (error) {
+          console.error("Error updating score:", error);
+        }
+      }
+      postScore();
+    }
+  }, [finished, score]);
 
   function goToNextQuiz() {
     if (
@@ -61,7 +75,11 @@ useEffect(() => {
   }
 
   if (quizzes.length === 0) {
-    return <div className="text-white text-center mt-20">Loading quizzes...</div>;
+    return (
+      <div className="text-white text-center mt-20">
+        Loading quizzes...
+      </div>
+    );
   }
 
   if (finished) {

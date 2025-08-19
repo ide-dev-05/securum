@@ -5,7 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { compare, hash } from "bcryptjs";
-
+ 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
 
           return newUser;
         } else {
-          // LOGIN FLOW
+
           if (!existingUser || !existingUser.hashedPassword) {
             throw new Error("Invalid credentials");
           }

@@ -16,10 +16,10 @@ model User {
   email          String?   @unique
   emailVerified  DateTime?
   image          String?
-  hashedPassword String?   // for credentials login
+  hashedPassword String?
+  scores         Int     @default(0)
   accounts       Account[]
   sessions       Session[]
-  points         Point[]
 
   @@map("users")
   @@schema("next_auth")
@@ -72,7 +72,7 @@ model VerificationToken {
 
 model Quiz {
   id            String   @id @default(uuid())
-  question          String
+  question      String
   choices       Json
   correct_index Int
   created_at    DateTime @default(now()) @map("created_at")
@@ -81,13 +81,3 @@ model Quiz {
   @@schema("next_auth")
 }
 
-
-model Point {
-  id        String   @id @default(uuid())
-  value     Int
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@schema("next_auth") 
-}
