@@ -17,6 +17,7 @@ export default function Sidebar({ onSelectSession }: SidebarProps) {
   const [expand, setExpand] = useState<boolean>(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const { data: session } = useSession();
+  const [isDark, setIsDark] = useState<boolean>(false);
 
   const fetchSessions = async () => {
     if (!session?.user?.id) return;
@@ -36,7 +37,6 @@ export default function Sidebar({ onSelectSession }: SidebarProps) {
 
   const handleSessionClick = async (sessionId: number) => {
     try {
-      // const res = await axios.get(`/api/chat/messages/${sessionId}`);
       const res = await axios.get(`http://localhost:8000/chat/messages/${sessionId}`);
       const messages = res.data.map((m: any) => ({ role: m.role, text: m.content }));
       onSelectSession(sessionId, messages);
@@ -46,40 +46,66 @@ export default function Sidebar({ onSelectSession }: SidebarProps) {
     }
   };
 
-  return (
-    <div className={`${expand ? "w-[17%]" : "w-[4%]"} min-h-screen border-r-[0.5px] border-stone-700 flex flex-col items-start pl-[1%] text-zinc-300`}>
-      {expand ? (
-        <X className={`mt-3 cursor-pointer ${localStorage.getItem('isDarkMode')=="true" ? "":"text-zinc-600"}`} onClick={() => setExpand(false)} />
-      ) : (
-        <Menu className={`mt-3 cursor-pointer ${localStorage.getItem('isDarkMode')=="true" ? "":"text-zinc-600"}`} onClick={() => setExpand(true)} />
-      )}
+  useEffect(() => {
+    const dm = localStorage.getItem("isDarkMode");
+    setIsDark(dm === "true");
+  }, []);
 
-      <div className="mt-10 flex flex-col justify-start space-y-[15px]">
-        <div
-          className="flex items-center justify-around space-x-[5px] w-full cursor-pointer"
+  return (
+    <div
+      className={`hidden md:flex shrink-0 min-h-screen border-r border-stone-700
+        ${expand ? "w-64" : "w-14"} flex-col items-start pl-2 sm:pl-3
+        ${isDark ? "text-zinc-300" : "text-zinc-700 bg-white"} dark:bg-transparent`}
+    >
+      <div className="mt-3">
+        {expand ? (
+          <X
+            className={`cursor-pointer ${isDark ? "" : "text-zinc-600"}`}
+            onClick={() => setExpand(false)}
+          />
+        ) : (
+          <Menu
+            className={`cursor-pointer ${isDark ? "" : "text-zinc-600"}`}
+            onClick={() => setExpand(true)}
+          />
+        )}
+      </div>
+
+      <div className="mt-6 flex w-full flex-col space-y-3">
+        <button
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 hover:bg-zinc-800/10 dark:hover:bg-zinc-700/40 transition"
           onClick={async () => {
             if (!session?.user?.id) return;
             try {
               const title = "New Chat";
-              const res = await axios.post(`http://localhost:8000/chat/session`, { user_id: session.user.id, title });
+              const res = await axios.post(`http://localhost:8000/chat/session`, {
+                user_id: session.user.id,
+                title,
+              });
               onSelectSession(res.data.session_id, []);
-              fetchSessions(); 
+              fetchSessions();
             } catch (err) {
               console.error("Error creating new chat session:", err);
             }
           }}
         >
-          <SquarePen className={`${localStorage.getItem('isDarkMode')=="true"?"":"text-zinc-600"}`} /> <p className={`${expand ? "block" : "hidden"} ${localStorage.getItem('isDarkMode')=="true"?"":"text-zinc-600"}`}>New chat</p>
-        </div>
+          <SquarePen className={`${isDark ? "" : "text-zinc-600"}`} />
+          <p className={`${expand ? "block" : "hidden"} ${isDark ? "" : "text-zinc-700"}`}>
+            New chat
+          </p>
+        </button>
 
-        <div className={`${expand ? "mt-1" : "hidden"} flex flex-col space-y-2 w-full`}>
+        <div
+          className={`${expand ? "mt-1" : "hidden"} flex max-h-[calc(100vh-140px)] flex-col space-y-1 overflow-y-auto w-full pr-2`}
+        >
           {sessions.length === 0 ? (
             <p className="px-2 py-1 text-zinc-500">No sessions yet</p>
           ) : (
             sessions.map((s) => (
               <div
                 key={s.session_id}
-                className="cursor-pointer hover:bg-zinc-700 px-2 py-1 rounded"
+                className="cursor-pointer rounded px-2 py-1 text-sm hover:bg-zinc-800/10 dark:hover:bg-zinc-700/40 truncate"
+                title={s.title || `Chat ${s.session_id}`}
                 onClick={() => handleSessionClick(s.session_id)}
               >
                 {s.title || `Chat ${s.session_id}`}
