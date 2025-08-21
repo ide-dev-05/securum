@@ -86,7 +86,7 @@
 #     answer = call_llm(request.prompt)
 #     return {"response": answer}
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import chromadb
@@ -206,28 +206,42 @@ def get_chat_messages(session_id: int):
     messages = cursor.fetchall()
     return [{"role": m["role"], "content": m["content"], "created_at": m["created_at"]} for m in messages]
 
-
 @app.post("/chat/message")
-def send_chat_message(request: PromptRequest):
-    if not request.session_id:
-        title = request.prompt[:100] 
+async def send_chat_message(
+    prompt: str = Form(...),
+    user_id: str = Form(...),
+    session_id: int | None = Form(None),
+    file: UploadFile | None = File(None)
+):
+    # Handle session
+    if not session_id:
+        title = prompt[:100] if prompt else (file.filename if file else "New session")
         cursor.execute(
             "INSERT INTO chat_sessions (user_id, title) VALUES (%s, %s) RETURNING id",
-            (request.user_id, title)
+            (user_id, title)
         )
         session = cursor.fetchone()
         session_id = session["id"]
         conn.commit()
-    else:
-        session_id = request.session_id
+
+    # If file was uploaded, read its content
+    file_text = ""
+    if file:
+        try:
+            raw = await file.read()
+            file_text = raw.decode("utf-8", errors="ignore")  # assume log file is text
+            prompt = f"{prompt}\n\n--- Attached file ({file.filename}) ---\n{file_text[:2500]}"
+            # we only append first 2000 chars to avoid overloading
+        except Exception as e:
+            print("Error reading file:", e)
 
     # Call LLM
-    answer = call_llm(request.prompt)
+    answer = call_llm(prompt)
 
     # Save user message
     cursor.execute(
         "INSERT INTO chat_messages (session_id, role, content) VALUES (%s, %s, %s)",
-        (session_id, "user", request.prompt)
+        (session_id, "user", prompt)
     )
     # Save bot response
     cursor.execute(
@@ -237,3 +251,36 @@ def send_chat_message(request: PromptRequest):
     conn.commit()
 
     return {"session_id": session_id, "response": answer}
+
+# @app.post("/chat/message")
+# def send_chat_message(request: PromptRequest):
+#     if not request.session_id:
+#         title = request.prompt[:100] 
+#         cursor.execute(
+#             "INSERT INTO chat_sessions (user_id, title) VALUES (%s, %s) RETURNING id",
+#             (request.user_id, title)
+#         )
+#         session = cursor.fetchone()
+#         session_id = session["id"]
+#         conn.commit()
+#     else:
+#         session_id = request.session_id
+
+#     # Call LLM
+#     answer = call_llm(request.prompt)
+
+#     # Save user message
+#     cursor.execute(
+#         "INSERT INTO chat_messages (session_id, role, content) VALUES (%s, %s, %s)",
+#         (session_id, "user", request.prompt)
+#     )
+#     # Save bot response
+#     cursor.execute(
+#         "INSERT INTO chat_messages (session_id, role, content) VALUES (%s, %s, %s)",
+#         (session_id, "bot", answer)
+#     )
+#     conn.commit()
+
+#     return {"session_id": session_id, "response": answer}
+
+

@@ -1,363 +1,3 @@
-// "use client";
-// import axios from "axios";
-// import { useSession, signOut } from "next-auth/react";
-// import { useState, useRef, useEffect } from "react";
-// import Image from "next/image";
-// import {
-//   User,
-//   SendHorizontal,
-//   Bolt,
-//   LogOut,
-//   LogIn,
-//   X,
-//   Puzzle,
-//   Mic,
-//   Copy,
-//   ThumbsUp,
-//   ThumbsDown,
-//   RefreshCcw,
-  
-// } from "lucide-react";
-// import Link from "next/link";
-// import Quizz from "./component/quizz";
-// import Sidebar from "./component/sidebar";
-// declare global {
-//   interface SpeechRecognition extends EventTarget {
-//     continuous: boolean;
-//     interimResults: boolean;
-//     lang: string;
-//     maxAlternatives: number;
-//     start(): void;
-//     stop(): void;
-//     abort(): void;
-//     onaudioend?: (event: Event) => void;
-//     onaudiostart?: (event: Event) => void;
-//     onend?: (event: Event) => void;
-//     onerror?: (event: SpeechRecognitionEvent) => void;
-//     onnomatch?: (event: Event) => void;
-//     onresult?: (event: SpeechRecognitionEvent) => void;
-//     onsoundend?: (event: Event) => void;
-//     onsoundstart?: (event: Event) => void;
-//     onspeechend?: (event: Event) => void;
-//     onspeechstart?: (event: Event) => void;
-//     onstart?: (event: Event) => void;
-//   }
-
-//   interface SpeechRecognitionEvent extends Event {
-//     results: SpeechRecognitionResultList;
-//   }
-
-//   interface Window {
-//     webkitSpeechRecognition: {
-//       new (): SpeechRecognition;
-//     };
-//   }
-// }
-// export default function Home() {
-//   const [prolileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
-//   const { data: session } = useSession();
-//   const [showQuiz, setShowQuiz] = useState<boolean>(false);
-//   const [userScores, setUserScores] = useState<number | null>(null);
-//   const [messages, setMessages] = useState<{ type: string; text: string }[]>(
-//     []
-//   );
-//   const [input, setInput] = useState<string>("");
-//   const [loading, setLoading] = useState<boolean>(false);
-//   const [isRecording, setIsRecording] = useState<boolean>(false);
-//   const [recordingComplete, setRecdingComplete] = useState<boolean>(false);
-//   const [transcript, setTranscript] = useState<string>("");
-//   const recognitionRef = useRef<SpeechRecognition | null>(null);
-//   const startRecording = () => {
-//     setIsRecording(true);
-//     const recognition = new window.webkitSpeechRecognition();
-//     recognition.continuous = true;
-//     recognition.interimResults = true;
-
-//     recognition.onresult = (e: SpeechRecognitionEvent) => {
-//       const lastResult = e.results[e.results.length - 1][0].transcript;
-//       setTranscript(lastResult);
-//     };
-
-//     recognition.start();
-//     recognitionRef.current = recognition;
-//   };
-//   const stopRecording = () => {
-//     if(recognitionRef.current){
-//       recognitionRef.current.stop();
-//       setRecdingComplete(true);
-//     }
-//     if (transcript.trim() !== "") {
-//       setMessages((prev) => [...prev, { type: "user", text: transcript }]);
-//       setTranscript(""); 
-//       setInput("");
-//     }
-//   };
-
-//   const handleRecording = () => {
-//     setIsRecording(!isRecording);
-//     if (!isRecording) {
-//       startRecording();
-//     } else {
-//       stopRecording();
-//     }
-//   };
-
-//   useEffect(() => {
-//     return () => {
-//       if (recognitionRef.current) {
-//         recognitionRef.current.stop();
-//       }
-//     };
-//   }, []);
-
-//   useEffect(() => {
-//     if (session?.user?.id) {
-//       axios.get("/api/scores")
-//         .then(res => {
-//           setUserScores(res.data.scores); // your selected column
-//         })
-//         .catch(err => {
-//           console.error("Error fetching user data:", err);
-//         });
-//     }
-//   }, [session]);
-
-//   // const handleSend = () => {
-//   //   stopRecording()
-//   //   if (!input.trim()) return;
-
-//   //   setMessages((prev) => [...prev, { type: "user", text: input }]);
-//   //   setInput("");
-//   //   setLoading(true);
-
-//   //   setTimeout(() => {
-//   //     setMessages((prev) => [
-//   //       ...prev,
-//   //       { type: "bot", text: "This is a sample bot reply." },
-//   //     ]);
-//   //     setLoading(false);
-//   //   }, 1500);
-//   // };
-
-//   const handleSend = async () => {
-//     stopRecording();
-//     if (!input.trim()) return;
-  
-//     setMessages((prev) => [...prev, { type: "user", text: input }]);
-//     setInput("");
-//     setLoading(true);
-  
-//     try {
-//       const res = await axios.post("http://localhost:8000/generate", {
-//         prompt: input
-//       });
-//       setMessages((prev) => [...prev, { type: "bot", text: res.data.response }]);
-//     } catch (err) {
-//       console.error("Error getting AI response:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-  
-
-//   const handleKeyDown = (e: {
-//     key: string;
-//     shiftKey: unknown;
-//     preventDefault: () => void;
-//   }) => {
-//     if (e.key === "Enter" && !e.shiftKey) {
-//       e.preventDefault();
-//       handleSend();
-//     }
-//   };
-
-//   return (
-//     <div className="font-sans flex items-center min-h-screen overflow-hidden">
-//       <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
-//       <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
-
-//       <Sidebar/>
-
-//       <main className="relative flex flex-col items-center w-[96%] min-h-screen">
-//         <p className="font-sans cursor-pointer absolute top-2 left-4 text-[22px] font-thin">
-//           Securum
-//         </p>
-
-//         <button onClick={() => setProfileMenuOpen(!prolileMenuOpen)}>
-//           <Image
-//             className="absolute top-4 right-4 rounded-[20px] cursor-pointer"
-//             src={session?.user?.image || "/assets/orb2.png"}
-//             alt="User Profile"
-//             height={30}
-//             width={40}
-//           />
-//           {prolileMenuOpen && (
-//             <ul className="bg-white absolute right-4 top-15 rounded-md text-black w-[200px] p-3 space-y-[15px]">
-//               <li className="flex items-center w-full space-x-[8px]">
-//                 <User />
-//                 <div>
-//                   <p>{session?.user?.name || "Guest"}</p>
-//                   <small>{session?.user?.email || ""}</small>
-//                 </div>
-//               </li>
-//               <li className="flex items-center w-full space-x-[8px]">
-//                 <Bolt /> <p>{userScores !== null && (
-//                           <span>{userScores} scores</span>
-//                         )}</p>
-//               </li>
-//               <hr className="h-[0.4px] text-zinc-300" />
-//               <li>
-//                 {session ? (
-//                   <button
-//                     onClick={() => signOut()}
-//                     className="flex items-center space-x-[8px] cursor-pointer font-medium"
-//                   >
-//                     <LogOut className="text-red-600" />
-//                     <p className="hover:text-red-600">Logout</p>
-//                   </button>
-//                 ) : (
-//                   <Link href="./login">
-//                     <div className="flex items-center space-x-[8px] cursor-pointer font-medium">
-//                       <LogIn className="text-red-600" />
-//                       <p className="hover:text-red-600">LogIn</p>
-//                     </div>
-//                   </Link>
-//                 )}
-//               </li>
-//             </ul>
-//           )}
-//         </button>
-
-//         {messages.length === 0 ? (
-//           <div className="text-center flex flex-col items-center mt-[100px] w-[800px]">
-//             <Image src="/assets/orb2.png" alt="orb" height={200} width={220} />
-//             <h1 className="text-[60px] font-medium">
-//               Welcome{" "}
-//               <span className="underline text-[40px] text-[#7bdcde] font-normal">
-//                 {session?.user?.name || "Guest"}
-//               </span>
-//               !
-//             </h1>
-//             <h2>
-//               Be knowledgeable with <i>Securum</i>
-//             </h2>
-//           </div>
-//         ) : (
-//           <div className="text-center flex flex-col items-center mt-[50px] w-[800px]">
-//             <div className="w-full relative text-start text-[16px]/[23px]">
-//               {messages.map((msg, idx) => (
-//                 <div
-//                   key={idx}
-//                   className={`flex mt-6 ${
-//                     msg.type === "user" ? "justify-end" : "justify-start"
-//                   }`}
-//                 >
-//                   <p
-//                     className={`p-2 rounded-md max-w-[600px] ${
-//                       msg.type === "user" ? "bg-zinc-700" : ""
-//                     }`}
-//                   >
-//                     {msg.text}
-//                     {msg.type === "bot" && (
-//                       <div className="flex items-center space-x-2 mt-2 ">
-//                         <Copy className="size-[16px] text-zinc-400 cursor-pointer" />
-//                         <ThumbsUp className="size-[16px] text-green-500 cursor-pointer" />
-//                         <ThumbsDown className="size-[16px] text-red-500 cursor-pointer" />
-//                         <RefreshCcw className="size-[16px] text-zinc-400 cursor-pointer" />
-//                       </div>
-//                     )}
-//                   </p>
-//                 </div>
-//               ))}
-
-//               {/* Loading */}
-//               {loading && (
-//                 <div className="flex justify-start items-center space-x-2 mt-6 text-zinc-400">
-//                   <Image
-//                     alt="loading"
-//                     src="/assets/orb2.png"
-//                     width={18}
-//                     height={18}
-//                     className="animate-spin"
-//                   />
-
-//                   <p>I&apos;m thinking...</p>
-//                 </div>
-//               )}
-//             </div>
-//           </div>
-//         )}
-
-//         <div
-//           className={`bg-[#1c1c1c] w-[800px] h-auto rounded-2xl p-4 mt-[30px] ${
-//             messages.length > 0 ? "absolute bottom-8" : ""
-//           }`}
-//         >
-//           <textarea
-//             value={input || transcript}
-//             onChange={(e) => setInput(e.target.value)}
-//             onKeyDown={handleKeyDown}
-//             placeholder="Ask Securum"
-//             className="w-full resize-none min-h-[20px] focus:outline-none focus:ring-0 bg-transparent text-white"
-//           />
-//           <div className="w-full flex justify-between items-center mt-[5px]">
-//             <div
-//               className={`flex space-x-[8px] text-sm ${
-//                 isRecording ? "hidden" : ""
-//               }`}
-//             >
-//               <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 ">
-//                 + Add file
-//               </button>
-//               <button
-//                 onClick={() => setShowQuiz(true)}
-//                 className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center"
-//               >
-//                 <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
-//               </button>
-//             </div>
-
-//             <div className="flex items-center space-x-[10px]">
-//               {isRecording ? (
-//                 <X
-//                   className="size-[20px] text-stone-300 cursor-pointer"
-//                   onClick={handleRecording}
-//                 />
-//               ) : (
-//                 <Mic
-//                   className="size-[20px] text-stone-300 cursor-pointer"
-//                   onClick={handleRecording}
-//                 />
-//               )}
-
-//               <SendHorizontal
-//                 className="size-[20px] text-stone-300 cursor-pointer"
-//                 onClick={handleSend}
-//               />
-//             </div>
-//           </div>
-//         </div>
-
-//         {showQuiz && (
-//           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-//             <div className="relative bg-black/60 border border-white/10 rounded-2xl shadow-2xl w-full h-[400px] max-w-4xl p-6 backdrop-blur-md transition-transform transform scale-100 hover:scale-[1.01]">
-//               <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
-//               <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
-//               <button
-//                 onClick={() => setShowQuiz(false)}
-//                 className="absolute top-4 right-4 text-red-500 w-8 h-8 flex items-center justify-center hover:text-red-600 transition-colors"
-//               >
-//                 ✕
-//               </button>
-//               <Quizz />
-//             </div>
-//           </div>
-//         )}
-//       </main>
-//     </div>
-//   );
-// }
-
 "use client";
 import axios from "axios";
 import { useSession, signOut } from "next-auth/react";
@@ -375,11 +15,12 @@ import {
   Copy,
   ThumbsUp,
   ThumbsDown,
-  RefreshCcw,
+  FileMinus,Check,Volume2
 } from "lucide-react";
 import Link from "next/link";
 import Quizz from "./component/quizz";
 import Sidebar from "./component/sidebar";
+import ThemeToggleButton from './component/themeToggleButton'
 
 declare global {
   interface SpeechRecognition extends EventTarget {
@@ -425,9 +66,46 @@ export default function Home() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [transcript, setTranscript] = useState<string>("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-
+  
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const animationRef = useRef<number | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  // Save chat to localStorage whenever it changes
+useEffect(() => {
+  if (messages.length > 0) {
+    localStorage.setItem("chat_messages", JSON.stringify(messages));
+    if (currentSessionId) {
+      localStorage.setItem("current_session_id", String(currentSessionId));
+    }
+  }
+}, [messages, currentSessionId]);
+
+// Load chat from localStorage on reload
+useEffect(() => {
+  const savedMessages = localStorage.getItem("chat_messages");
+  const savedSessionId = localStorage.getItem("current_session_id");
+  if (savedMessages) {
+    setMessages(JSON.parse(savedMessages));
+  }
+  if (savedSessionId) {
+    setCurrentSessionId(Number(savedSessionId));
+  }
+}, []);
+
+
+  
   const startRecording = () => {
     setIsRecording(true);
     const recognition = new window.webkitSpeechRecognition();
@@ -455,8 +133,13 @@ export default function Home() {
   };
 
   const handleRecording = () => {
-    if (!isRecording) startRecording();
-    else stopRecording();
+    if (!isRecording) {
+      startRecording();
+      startWaveform();
+    } else {
+      stopRecording();
+      stopWaveform();
+    }
   };
 
   useEffect(() => {
@@ -474,26 +157,30 @@ export default function Home() {
     }
   }, [session]);
 
-  const handleSend = async () => {
-    stopRecording();
-    if (!input.trim() || !session?.user?.id) return;
   
-    const newUserMessage = { type: "user", text: input };
+  const handleSend = async () => {
+    setInput("");
+    stopRecording();
+    if ((!input.trim() && !selectedFile) || !session?.user?.id) return;
+  
+    const newUserMessage = { type: "user", text: input || `[Uploaded file: ${selectedFile?.name}]` };
     setMessages((prev) => [...prev, newUserMessage]);
     setLoading(true);
   
     try {
-      // Send user input to FastAPI backend
-      const res = await axios.post("http://localhost:8000/chat/message", {
-        prompt: input,
-        user_id: session.user.id,
-        session_id: currentSessionId || undefined, // optional for new chat
+      const formData = new FormData();
+      formData.append("prompt", input || "");
+      formData.append("user_id", session.user.id.toString());
+      if (currentSessionId) formData.append("session_id", currentSessionId.toString());
+      if (selectedFile) formData.append("file", selectedFile);
+  
+      const res = await axios.post("http://localhost:8000/chat/message", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
   
       const botMessage = { type: "bot", text: res.data.response };
       setMessages((prev) => [...prev, botMessage]);
   
-      // Update current session if new session was created
       if (!currentSessionId) {
         setCurrentSessionId(res.data.session_id);
       }
@@ -501,6 +188,7 @@ export default function Home() {
       console.error("Error sending chat message:", err);
     } finally {
       setInput("");
+      setSelectedFile(null);
       setLoading(false);
     }
   };
@@ -518,6 +206,80 @@ export default function Home() {
     setMessages(sessionMessages.map((m) => ({ type: m.role === "user" ? "user" : "bot", text: m.text })));
   };
 
+  const startWaveform = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioCtx = new AudioContext();
+    audioCtxRef.current = audioCtx;
+  
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+  
+    analyserRef.current = analyser;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    dataArrayRef.current = dataArray;
+  
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+  
+    // normalize canvas resolution
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  
+    const draw = () => {
+      animationRef.current = requestAnimationFrame(draw);
+      analyser.getByteTimeDomainData(dataArray);
+  
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+  
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, "#06b6d4"); // cyan
+      gradient.addColorStop(1, "#db2777"); // pink
+      ctx.strokeStyle = gradient as unknown as string;
+  
+      ctx.beginPath();
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+  
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+  
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+  
+    draw();
+  };
+  
+  const stopWaveform = () => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (audioCtxRef.current) audioCtxRef.current.close();
+    audioCtxRef.current = null;
+    analyserRef.current = null;
+  };
+
+  const speakText = (text: string) => {
+    if (!text) return;
+    window.speechSynthesis.cancel();
+  
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    window.speechSynthesis.speak(utterance);
+  };
+  
+  
+
+  
   return (
     <div className="font-sans flex items-center min-h-screen overflow-hidden">
       <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
@@ -537,10 +299,10 @@ export default function Home() {
             width={40}
           />
           {prolileMenuOpen && (
-            <ul className="bg-white absolute right-4 top-15 rounded-md text-black w-[200px] p-3 space-y-[15px]">
+            <ul className="bg-[#353535] absolute right-4 top-15 rounded-md text-zinc-200 w-[200px] p-3 space-y-[15px]">
               <li className="flex items-center w-full space-x-[8px]">
                 <User />
-                <div>
+                <div className="text-start">
                   <p>{session?.user?.name || "Guest"}</p>
                   <small>{session?.user?.email || ""}</small>
                 </div>
@@ -549,7 +311,11 @@ export default function Home() {
                 <Bolt />
                 <p>{userScores !== null && <span>{userScores} scores</span>}</p>
               </li>
-              <hr className="h-[0.4px] text-zinc-300" />
+              <li className="flex items-center w-full hover:bg-gray-600 py-1 rounded-md cursor-pointer">
+                <ThemeToggleButton/>
+              </li>
+              
+              <hr className="h-[0.4px] text-zinc-600" />
               <li>
                 {session ? (
                   <button
@@ -583,18 +349,41 @@ export default function Home() {
             </h2>
           </div>
         ) : (
-          <div className="text-center flex flex-col items-center mt-[50px] w-[800px]">
-            <div className="w-full relative text-start text-[16px]/[23px]">
+          <div className={`text-center flex flex-col items-center mt-[50px] w-[800px] ${localStorage.getItem('isDarkMode')=="true"?'':'text-black'}`}>
+            <div className={`w-full relative text-start text-[15px]/[26px] ${
+                messages.length > 1 ? "max-h-[600px] lg:max-h-[800px] 2xl:max-h-[730px] overflow-y-auto" : ""
+              }`}
+>
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex mt-6 ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
-                  <p className={`p-2 rounded-md max-w-[600px] ${msg.type === "user" ? "bg-zinc-700" : ""}`}>
+                  <p className={`p-2 rounded-md max-w-[600px] ${
+                    msg.type === "user" 
+                      ? (localStorage.getItem('isDarkMode') === "false" ? "bg-stone-200 border border-[0.5px] border-zinc-200 p-3" : "bg-zinc-700") 
+                      : ""
+                  }`}>
                     {msg.text}
                     {msg.type === "bot" && (
                       <div className="flex items-center space-x-2 mt-2">
-                        <Copy className="size-[16px] text-zinc-400 cursor-pointer" />
+                        {copiedIndex === idx ? (
+                          <Check className="size-[16px] text-green-500" />
+                        ) : (
+                          <Copy
+                            className="size-[16px] text-zinc-400 cursor-pointer"
+                            onClick={() => {
+                              navigator.clipboard.writeText(msg.text);
+                              setCopiedIndex(idx);
+                              setTimeout(() => setCopiedIndex(null), 1500); // reset after 1.5s
+                            }}
+                            title="Copy response"
+                          />
+                        )}
                         <ThumbsUp className="size-[16px] text-green-500 cursor-pointer" />
                         <ThumbsDown className="size-[16px] text-red-500 cursor-pointer" />
-                        <RefreshCcw className="size-[16px] text-zinc-400 cursor-pointer" />
+                        <Volume2
+                          className="size-[18px] text-zinc-400 cursor-pointer"
+                          onClick={() => speakText(msg.text)}
+                          title="Play message"
+                        />
                       </div>
                     )}
                   </p>
@@ -611,30 +400,52 @@ export default function Home() {
           </div>
         )}
 
-        <div className={`bg-[#1c1c1c] w-[800px] h-auto rounded-2xl p-4 mt-[30px] ${messages.length > 0 ? "absolute bottom-8" : ""}`}>
+        <div className={`${localStorage.getItem('isDarkMode')=="true" ?'bg-[#1c1c1c]':'bg-[#f8f8fe] border border-[0.5px] border-zinc-600'} w-[800px] h-auto rounded-2xl p-4 mt-[30px] ${messages.length > 0 ? "absolute bottom-8" : ""}`}>
           <textarea
             value={input || transcript}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Securum"
-            className="w-full resize-none min-h-[20px] focus:outline-none focus:ring-0 bg-transparent text-white"
+            className={`w-full resize-none min-h-[20px] focus:outline-none focus:ring-0 bg-transparent ${localStorage.getItem('isDarkMode')=='true'?'text-white':'text-black'}`}
           />
           <div className="w-full flex justify-between items-center mt-[5px]">
-            <div className={`flex space-x-[8px] text-sm ${isRecording ? "hidden" : ""}`}>
-              <button className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2">+ Add file</button>
-              <button onClick={() => setShowQuiz(true)} className="border border-stone-700 rounded-lg cursor-pointer px-4 py-2 flex items-center">
+            <div className={`flex space-x-[5px] text-sm ${isRecording ? "hidden" : ""}`}>
+              {selectedFile && (
+                <div className="flex items-center border border-stone-700 rounded-lg px-2 select-none">
+                  <FileMinus/>
+                  <p className="text-xs  inline-block ml-1"> {selectedFile.name}</p>
+                </div>
+              )}
+              <label className={`border rounded-lg cursor-pointer px-2 py-2 ${localStorage.getItem('isDarkMode')=='true'?'text-white  border-stone-700':'text-stone-600 border-stone-500'}`}>
+                + Add file
+                <input
+                  type="file"
+                  accept=".log"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              
+              <button onClick={() => setShowQuiz(true)} className={`border rounded-lg cursor-pointer px-2 py-2 ${localStorage.getItem('isDarkMode')=='true'?'text-white border-stone-700':'text-stone-600 border-stone-500'} flex items-center`}>
                 <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
               </button>
             </div>
 
-            <div className="flex items-center space-x-[10px]">
+            <div className={`flex items-center space-x-[10px] ${isRecording ? 'w-full':''}`}>
               {isRecording ? (
-                <X className="size-[20px] text-stone-300 cursor-pointer" onClick={handleRecording} />
+                <>
+                  <X className={`size-[20px] cursor-pointer ${localStorage.getItem('isDarkMode')=="true"?'text-stone-300':'text-stone-600'}`} onClick={()=>{handleRecording(); stopWaveform();}} />
+                  <canvas ref={canvasRef} className="w-full h-[40px]" />
+                </>
               ) : (
-                <Mic className="size-[20px] text-stone-300 cursor-pointer" onClick={handleRecording} />
+                <Mic className={`size-[20px] cursor-pointer ${localStorage.getItem('isDarkMode')=="true"?'text-stone-300':'text-stone-600'}`} onClick={() => {
+                  handleRecording();
+                  startWaveform(); 
+                }} />
               )}
 
-              <SendHorizontal className="size-[20px] text-stone-300 cursor-pointer" onClick={handleSend} />
+              <SendHorizontal className={`size-[20px] cursor-pointer ${localStorage.getItem('isDarkMode')=="true"?'text-stone-300':'text-stone-600'}`} onClick={handleSend} />
             </div>
           </div>
         </div>
