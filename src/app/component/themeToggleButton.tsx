@@ -1,41 +1,27 @@
 "use client";
+import { useTheme } from "next-themes";
+import { Moon, SunDim } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Moon, SunDim } from "lucide-react"; // adjust based on your icons
 
 export default function ThemeToggleButton() {
-  const [isDark, setIsDark] = useState(false);
+  const { theme, systemTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("isDarkMode");
-    setIsDark(stored === "true");
-  }, []);
-
-  const toggleTheme = () => {
-    const newValue = !isDark;
-    setIsDark(newValue);
-    localStorage.setItem("isDarkMode", newValue.toString());
-
-    // Optional: notify other components/tabs
-    window.dispatchEvent(new StorageEvent("storage", { 
-      key: "isDarkMode", 
-      newValue: newValue.toString() 
-    }));
-  };
+  const current = theme === "system" ? systemTheme : theme;
+  const isDark = current === "dark";
 
   return (
     <button
-      className="text-sm md:text-xl font-light h-full space-x-[8px] cursor-pointer flex items-center group"
-      onClick={toggleTheme}
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="w-full inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm
+                  hover:bg-accent transition-colors"
+      aria-pressed={isDark}
     >
-      {isDark ? <SunDim /> : <Moon />}
-      {isDark ? (
-        <p className="text-[15px] font-medium">Light</p>
-      ) : (
-        <p className="group-hover:underline text-[15px] font-medium cursor-pointer">
-          Dark
-        </p>
-      )}
+      {isDark ? <SunDim className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <span className="truncate">{isDark ? "Light" : "Dark"}</span>
     </button>
   );
 }

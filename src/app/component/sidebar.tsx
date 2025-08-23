@@ -1,119 +1,368 @@
-import React, { useEffect, useState } from "react";
-import { X, Menu, SquarePen, Search } from "lucide-react";
-import axios from "axios";
-import { useSession } from "next-auth/react";
+"use client"
 
-interface Session {
-  session_id: number;
-  title: string;
-  created_at: string;
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import axios, { AxiosError, CancelTokenSource } from "axios"
+import { useSession } from "next-auth/react"
+import { Menu, X, SquarePen, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { SheetClose } from "@/components/ui/sheet"
+interface ChatSession {
+  session_id: number
+  title: string | null
+  created_at?: string
 }
-
 interface SidebarProps {
-  onSelectSession: (sessionId: number, messages: { role: string; text: string }[]) => void;
+  onSelectSession: (sessionId: number, messages: { role: string; text: string }[]) => void
+  currentSessionId?: number | null
+  apiBaseUrl?: string
+}
+function cn(...classes: (string | false | null | undefined)[]) {
+  return classes.filter(Boolean).join(" ")
 }
 
-export default function Sidebar({ onSelectSession }: SidebarProps) {
-  const [expand, setExpand] = useState<boolean>(false);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const { data: session } = useSession();
-  const [isDark, setIsDark] = useState<boolean>(false);
+export default function Sidebar({
+  onSelectSession,
+  currentSessionId = null,
+  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000",
+}: SidebarProps) {
+  const { data: auth } = useSession()
+  const userId = (auth as any)?.user?.id
+
+  const [expand, setExpand] = useState(false)
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  const cancelRef = useRef<CancelTokenSource | null>(null)
+
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    const dm = localStorage.getItem("isDarkMode")
+    setIsDark(dm === "true")
+  }, [])
 
   const fetchSessions = async () => {
-    if (!session?.user?.id) return;
-
+    if (!userId) return
+    cancelRef.current?.cancel("new-request")
+    cancelRef.current = axios.CancelToken.source()
     try {
-      const res = await axios.get(`http://localhost:8000/chat/sessions/${session.user.id}`);
-      setSessions(res.data || []); // ensure we always have an array
+      setLoading(true)
+      setError(null)
+      const res = await axios.get(`${apiBaseUrl}/chat/sessions/${userId}`, {
+        cancelToken: cancelRef.current.token,
+      })
+      setSessions(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
-      console.error("Error fetching sessions:", err);
-      setSessions([]); // fallback to empty array
+      if (axios.isCancel(err)) return
+      const e = err as AxiosError
+      console.error("Error fetching sessions:", e)
+      setError("Could not load sessions")
+      setSessions([])
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchSessions();
-  }, [session]);
+    fetchSessions()
+  }, [userId, apiBaseUrl])
 
-  const handleSessionClick = async (sessionId: number) => {
+  const filtered = sessions
+
+  const handleSelect = async (sessionId: number) => {
     try {
-      const res = await axios.get(`http://localhost:8000/chat/messages/${sessionId}`);
-      const messages = res.data.map((m: any) => ({ role: m.role, text: m.content }));
-      onSelectSession(sessionId, messages);
+      const res = await axios.get(`${apiBaseUrl}/chat/messages/${sessionId}`)
+      const messages = (res.data || []).map((m: any) => ({ role: m.role, text: m.content }))
+      onSelectSession(sessionId, messages)
     } catch (err) {
-      console.error("Error fetching messages:", err);
-      onSelectSession(sessionId, []); // fallback if messages fail
+      console.error("Error fetching messages:", err)
+      onSelectSession(sessionId, [])
     }
-  };
+  }
 
-  useEffect(() => {
-    const dm = localStorage.getItem("isDarkMode");
-    setIsDark(dm === "true");
-  }, []);
+  const handleCreate = async () => {
+    if (!userId) return
+    try {
+      setCreating(true)
+      const res = await axios.post(`${apiBaseUrl}/chat/session`, {
+        user_id: userId,
+        title: "New Chat",
+      })
+      const sid = res.data?.session_id
+      if (sid) {
+        await fetchSessions()
+        onSelectSession(sid, [])
+      }
+    } catch (err) {
+      console.error("Error creating new chat session:", err)
+    } finally {
+      setCreating(false)
+    }
+  }
 
-  return (
-    <div
-      className={`hidden md:flex shrink-0 min-h-screen border-r border-stone-700
-        ${expand ? "w-64" : "w-14"} flex-col items-start pl-2 sm:pl-3
-        ${isDark ? "text-zinc-300" : "text-zinc-700 bg-white"} dark:bg-transparent`}
-    >
-      <div className="mt-3">
-        {expand ? (
-          <X
-            className={`cursor-pointer ${isDark ? "" : "text-zinc-600"}`}
-            onClick={() => setExpand(false)}
-          />
+  function PrimaryNav() {
+    return (
+      <ul className="mt-2 w-full space-y-1 px-2">
+        <li>
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            className={cn(
+              "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm",
+              "transition-colors hover:bg-accent focus-visible:outline-none",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            )}
+            title="New chat"
+          >
+            {creating ? <Loader2 className="h-5 w-5 animate-spin" /> : <SquarePen className="h-5 w-5" />}
+            {expand && (
+              <span className="whitespace-nowrap transition-opacity duration-200">
+                New chat
+              </span>
+            )}
+          </button>
+        </li>
+      </ul>
+    )
+  }
+
+  function ChatsList() {
+    return (
+      <div className="flex-1 px-2 pb-2">
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-8 w-full animate-pulse rounded bg-muted" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-sm text-red-600">{error}</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-sm text-muted-foreground">{expand ? "No sessions" : " "}</div>
         ) : (
-          <Menu
-            className={`cursor-pointer ${isDark ? "" : "text-zinc-600"}`}
-            onClick={() => setExpand(true)}
-          />
+          <ScrollArea className="h-[calc(100vh-200px)] pr-2">
+            <div className="space-y-1">
+              {filtered.map((s) => {
+                const active = s.session_id === currentSessionId
+                const label = s.title || `Chat ${s.session_id}`
+
+                return (
+                  <button
+                    key={s.session_id}
+                    onClick={() => handleSelect(s.session_id)}
+                    title={expand ? label : undefined} 
+                    className={cn(
+                      "group w-full truncate rounded px-3 py-2 text-left text-sm",
+                      "transition-colors hover:bg-accent focus-visible:outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      active && "bg-accent"
+                    )}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {expand ? (
+                      <span>{label}</span>
+                    ) : (
+                      <span className="block text-center">{label.slice(0, 1)}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </ScrollArea>
         )}
       </div>
+    )
+  }
+  function MobileSidebarBody() {
+    return (
+      <div className="flex h-full w-full flex-col">
+   
+        <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">Chats</h2>
 
-      <div className="mt-6 flex w-full flex-col space-y-3">
-        <button
-          className="flex w-full items-center gap-2 rounded-md px-2 py-2 hover:bg-zinc-800/10 dark:hover:bg-zinc-700/40 transition"
-          onClick={async () => {
-            if (!session?.user?.id) return;
-            try {
-              const title = "New Chat";
-              const res = await axios.post(`http://localhost:8000/chat/session`, {
-                user_id: session.user.id,
-                title,
-              });
-              onSelectSession(res.data.session_id, []);
-              fetchSessions();
-            } catch (err) {
-              console.error("Error creating new chat session:", err);
-            }
-          }}
-        >
-          <SquarePen className={`${isDark ? "" : "text-zinc-600"}`} />
-          <p className={`${expand ? "block" : "hidden"} ${isDark ? "" : "text-zinc-700"}`}>
-            New chat
-          </p>
-        </button>
-
-        <div
-          className={`${expand ? "mt-1" : "hidden"} flex max-h-[calc(100vh-140px)] flex-col space-y-1 overflow-y-auto w-full pr-2`}
-        >
-          {sessions.length === 0 ? (
-            <p className="px-2 py-1 text-zinc-500">No sessions yet</p>
-          ) : (
-            sessions.map((s) => (
-              <div
-                key={s.session_id}
-                className="cursor-pointer rounded px-2 py-1 text-sm hover:bg-zinc-800/10 dark:hover:bg-zinc-700/40 truncate"
-                title={s.title || `Chat ${s.session_id}`}
-                onClick={() => handleSessionClick(s.session_id)}
+            <div className="flex items-center gap-2">
+            
+              <Button
+                onClick={handleCreate}
+                disabled={creating}
+                size="sm"
+                className="gap-2"
               >
-                {s.title || `Chat ${s.session_id}`}
-              </div>
-            ))
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <SquarePen className="h-4 w-4" />}
+                <span className="text-sm">New chat</span>
+              </Button>
+
+             
+              <SheetClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close sidebar"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </SheetClose>
+            </div>
+          </div>
+        </div>
+
+
+       
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="space-y-2 p-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-10 w-full animate-pulse rounded-md bg-muted" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-4 text-sm text-red-600">{error}</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              No sessions yet. Start one with <span className="font-medium">New chat</span>.
+            </div>
+          ) : (
+            <ul className="p-2">
+              {filtered.map((s) => {
+                const active = s.session_id === currentSessionId
+                const label = s.title || `Chat ${s.session_id}`
+
+                return (
+                  <li key={s.session_id} className="py-1">
+                    <button
+                      onClick={() => handleSelect(s.session_id)}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group flex w-full items-center justify-between rounded-xl px-3 py-3",
+                        "text-left",
+                        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        active ? "bg-accent" : "hover:bg-accent/60"
+                      )}
+                      title={label}
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{label}</div>
+                        {s.created_at && (
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {new Date(s.created_at).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </div>
       </div>
-    </div>
+    )
+  }
+
+
+  function SidebarBody() {
+    return (
+      <div className="flex h-full w-full flex-col">
+   
+        <div className="flex items-center justify-end gap-2 p-2 md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setExpand((e) => !e)}
+            aria-label={expand ? "Collapse sidebar" : "Expand sidebar"}
+            aria-expanded={expand}
+            className="transition-transform"
+          >
+            {expand ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        <PrimaryNav />
+
+        <Separator className="my-3" />
+
+        <div
+          className={cn(
+            "px-4 pb-1 text-xs font-medium text-muted-foreground",
+            "transition-all duration-200",
+            expand ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1"
+          )}
+        >
+          Chats
+        </div>
+
+        <ChatsList />
+      </div>
+    )
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+     
+      <aside
+        data-expanded={expand}
+        className={cn(
+          "hidden md:flex shrink-0 min-h-screen border-r bg-background/95 backdrop-blur",
+          "transition-[width] duration-300 ease-out will-change-[width]",
+          expand ? "w-64" : "w-14",
+          isDark ? "text-zinc-300" : "text-zinc-700 bg-white",
+          "dark:bg-transparent"
+        )}
+      >
+        {/* Desktop toggle */}
+        <div className="absolute left-2 top-3 hidden md:block">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setExpand(e => !e)}
+            aria-label={expand ? "Collapse sidebar" : "Expand sidebar"}
+            aria-expanded={expand}
+            className="transition-transform focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <div className={cn("transition-transform duration-300", expand ? "rotate-0" : "rotate-180")}>
+              {expand ? (
+                <X className={cn(!isDark && "text-zinc-600")} />
+              ) : (
+                <Menu className={cn(!isDark && "text-zinc-600")} />
+              )}
+            </div>
+          </Button>
+        </div>
+
+        {/* Desktop content */}
+        <div className="flex w-full pt-10">
+          <SidebarBody />
+        </div>
+      </aside>
+
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed left-2 top-3 z-50 md:hidden"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+
+        <SheetContent side="left" className="flex h-dvh w-[88vw] max-w-[22rem] flex-col p-0 md:hidden">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Chats</SheetTitle>
+          </SheetHeader>
+
+          <MobileSidebarBody />
+        </SheetContent>
+      </Sheet>
+
+    </TooltipProvider>
   );
+
 }

@@ -1,8 +1,8 @@
 "use client";
 import axios from "axios";
 import { useSession, signOut } from "next-auth/react";
-import { Session } from "next-auth";
-
+import ProfileMenu from "./component/profile";
+import { useTheme } from "next-themes";
 declare module "next-auth" {
   interface Session {
     user: {
@@ -13,30 +13,28 @@ declare module "next-auth" {
     };
   }
 }
-
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
-  User,
   SendHorizontal,
-  Bolt,
-  LogOut,
-  LogIn,
   X,
   Puzzle,
   Mic,
   Copy,
   ThumbsUp,
   ThumbsDown,
-  FileMinus,
-  Check,
-  Volume2,
+  FileMinus,Check,Volume2
 } from "lucide-react";
-import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+} from "@/components/ui/dialog";
 import Quizz from "./component/quizz";
 import Sidebar from "./component/sidebar";
-import ThemeToggleButton from "./component/themeToggleButton";
-
+import { cn } from "@/lib/utils";
+import { DialogTitle } from "@radix-ui/react-dialog";
 declare global {
   interface SpeechRecognition extends EventTarget {
     continuous: boolean;
@@ -58,11 +56,9 @@ declare global {
     onspeechstart?: (event: Event) => void;
     onstart?: (event: Event) => void;
   }
-
   interface SpeechRecognitionEvent extends Event {
     results: SpeechRecognitionResultList;
   }
-
   interface Window {
     webkitSpeechRecognition: {
       new (): SpeechRecognition;
@@ -71,7 +67,6 @@ declare global {
 }
 
 export default function Home() {
-  const [prolileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
   const { data: session } = useSession();
   const [showQuiz, setShowQuiz] = useState<boolean>(false);
   const [userScores, setUserScores] = useState<number | null>(null);
@@ -90,14 +85,14 @@ export default function Home() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isDark, setIsDark] = useState<boolean>(false);
-
+  const { theme, systemTheme } = useTheme();
+  const resolvedTheme = theme === "system" ? systemTheme : theme;
+  const isDark = resolvedTheme === "dark";
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
     }
   };
-
   useEffect(() => {
     if (messages.length > 0) {
       localStorage.setItem("chat_messages", JSON.stringify(messages));
@@ -143,7 +138,6 @@ export default function Home() {
       setTranscript("");
     }
   };
-
   const handleRecording = () => {
     if (!isRecording) {
       startRecording();
@@ -153,7 +147,6 @@ export default function Home() {
       stopWaveform();
     }
   };
-
   useEffect(() => {
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
@@ -169,22 +162,15 @@ export default function Home() {
     }
   }, [session]);
 
-  useEffect(() => {
-    const dm = localStorage.getItem("isDarkMode");
-    setIsDark(dm === "true");
-  }, []);
-
   const handleSend = async () => {
     setInput("");
     stopRecording();
     if ((!input.trim() && !selectedFile) || !session?.user?.id) return;
 
-    const newUserMessage = {
-      type: "user",
-      text: input || `[Uploaded file: ${selectedFile?.name}]`,
-    };
+    const newUserMessage = { type: "user", text: input || `[Uploaded file: ${selectedFile?.name}]` };
     setMessages((prev) => [...prev, newUserMessage]);
     setLoading(true);
+    console.log(messages.length)
 
     try {
       const formData = new FormData();
@@ -242,8 +228,6 @@ export default function Home() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!ctx || !canvas) return;
-
-    // normalize canvas resolution
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
@@ -256,15 +240,14 @@ export default function Home() {
       ctx.lineWidth = 2;
 
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      gradient.addColorStop(0, "#06b6d4"); // cyan
-      gradient.addColorStop(1, "#db2777"); // pink
-   
+      gradient.addColorStop(0, "#06b6d4"); 
+      gradient.addColorStop(1, "#db2777"); 
+
       ctx.strokeStyle = gradient as unknown as string;
 
       ctx.beginPath();
       const sliceWidth = canvas.width / bufferLength;
       let x = 0;
-
       for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0;
         const y = (v * canvas.height) / 2;
@@ -272,7 +255,6 @@ export default function Home() {
         else ctx.lineTo(x, y);
         x += sliceWidth;
       }
-
       ctx.lineTo(canvas.width, canvas.height / 2);
       ctx.stroke();
     };
@@ -303,85 +285,25 @@ export default function Home() {
   }, [messages]);
 
   return (
-    <div className="font-sans flex min-h-screen overflow-hidden">
-      {/* gradients */}
-      <div className="pointer-events-none absolute -top-10 right-0 h-80 w-80 rounded-full bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-10 -left-32 z-[-1] h-60 w-96 rounded-t-full bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-20 blur-3xl" />
-
-      {/* hide sidebar on small screens, keep logic intact */}
-      <div className="hidden md:block">
-        <Sidebar onSelectSession={handleSelectSession} />
-      </div>
-
-      <main className="relative flex w-full flex-col items-center min-h-screen px-3 sm:px-6">
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-          {/* map over your messages here */}
-        </div>
-        <p className="font-sans cursor-pointer absolute top-2 left-4 text-xl sm:text-2xl font-thin">
+    <div className="font-sans flex items-center min-h-screen overflow-hidden">
+      <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
+      <Sidebar onSelectSession={handleSelectSession} />
+      <main className="relative flex flex-col items-center w-full min-h-screen px-3 sm:px-6">
+       <div className="flex flex-row">
+       <p className="font-sans cursor-pointer absolute top-2 left-4 text-xl sm:text-2xl font-thin hidden md:block">
           Securum
         </p>
-
-        <button onClick={() => setProfileMenuOpen(!prolileMenuOpen)}>
-          <Image
-            className="absolute top-4 right-4 rounded-[20px] cursor-pointer"
-            src={session?.user?.image || "/assets/orb2.png"}
-            alt="User Profile"
-            height={30}
-            width={40}
-          />
-          {prolileMenuOpen && (
-            <ul
-              className={`absolute right-2 top-14 rounded-md 
-                ${isDark ? "bg-[#2a2a2a] text-zinc-200" : "bg-white text-zinc-800 border border-zinc-200"}
-                w-[calc(100vw-1rem)] max-w-[280px] p-3 space-y-3 shadow-lg`}
-            >
-              <li className="flex items-center w-full space-x-[8px]">
-                <User />
-                <div className="text-start">
-                  <p>{session?.user?.name || "Guest"}</p>
-                  <small>{session?.user?.email || ""}</small>
-                </div>
-              </li>
-              <li className="flex items-center w-full space-x-[8px]">
-                <Bolt />
-                <p>{userScores !== null && <span>{userScores} scores</span>}</p>
-              </li>
-              <li className="flex items-center w-full hover:bg-gray-600 py-1 rounded-md cursor-pointer">
-                <ThemeToggleButton />
-              </li>
-
-              <hr className="h-px text-zinc-600" />
-              <li>
-                {session ? (
-                  <button
-                    onClick={() => signOut()}
-                    className="flex items-center space-x-[8px] cursor-pointer font-medium"
-                  >
-                    <LogOut className="text-red-600" />
-                    <p className="hover:text-red-600">Logout</p>
-                  </button>
-                ) : (
-                  <Link href="./login">
-                    <div className="flex items-center space-x-[8px] cursor-pointer font-medium">
-                      <LogIn className="text-red-600" />
-                      <p className="hover:text-red-600">LogIn</p>
-                    </div>
-                  </Link>
-                )}
-              </li>
-            </ul>
-          )}
-        </button>
-
+        <ProfileMenu
+          session={session}
+          userScores={userScores}
+          isDark={isDark}
+          signOut={signOut}
+        />
+       </div>
         {messages.length === 0 ? (
-          <div className="text-center flex flex-col items-center mt-24 w-full max-w-[800px] px-4">
-            <Image
-              src="/assets/orb2.png"
-              alt="orb"
-              height={160}
-              width={176}
-              className="h-40 w-44 sm:h-52 sm:w-56"
-            />
+          <div className="text-center flex flex-col items-center mt-24 w-full max-w-[1200px] xl:max-w-[800px] px-4">
+            <Image src="/assets/orb2.png" alt="orb" height={160} width={176} className="h-40 w-44 sm:h-52 sm:w-56" />
             <h1 className="text-3xl sm:text-6xl font-medium mt-4">
               Welcome{" "}
               <span className="underline text-2xl sm:text-4xl text-[#7bdcde] font-normal">
@@ -389,38 +311,20 @@ export default function Home() {
               </span>
               !
             </h1>
-            <h2 className="text-base sm:text-lg mt-2">
-              Be knowledgeable with <i>Securum</i>
-            </h2>
+            <h2 className="text-base sm:text-lg mt-2">Be knowledgeable with <i>Securum</i></h2>
           </div>
         ) : (
-          <div
-            className={`text-center flex flex-col items-center mt-12 w-full max-w-[800px] ${
-              isDark ? "" : "text-black"
-            } px-2 sm:px-0`}
-          >
-            <div
-              className={`w-full relative text-start text-[15px]/[26px] 
-                max-h-[calc(100vh-300px)] overflow-y-auto`}
-            >
+          <div className={`text-center flex flex-col items-center mt-[50px]  w-full max-w-[1200px] xl:max-w-[800px] ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
+            <div className={`w-full relative text-start text-[15px]/[26px] max-h-[calc(100vh-240px)] overflow-y-auto`}>
               {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex mt-4 sm:mt-6 px-1 ${
-                    msg.type === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <p
-                    className={`p-2 sm:p-3 rounded-md max-w-[90%] sm:max-w-[600px] break-words
-                      ${
-                        msg.type === "user"
-                          ? isDark
-                            ? "bg-zinc-700"
-                            : "bg-stone-100 border border-zinc-200"
-                          : isDark
-                          ? "text-zinc-200"
-                          : "text-zinc-800"
-                      }`}
+                <div key={idx} className={`flex mt-4 sm:mt-6 px-1 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`p-2 sm:p-3 rounded-md max-w-[95%] md:max-w-[900px] xl:max-w-[1100px] break-words
+                    ${
+                      msg.type === "user"
+                      ? (isDark ? "bg-zinc-700" : "bg-stone-200 border-[0.5px] border-zinc-200 p-3")
+                      : ""
+                    }`}
                   >
                     {msg.text}
                     {msg.type === "bot" && (
@@ -434,7 +338,7 @@ export default function Home() {
                               onClick={() => {
                                 navigator.clipboard.writeText(msg.text);
                                 setCopiedIndex(idx);
-                                setTimeout(() => setCopiedIndex(null), 1500);
+                                setTimeout(() => setCopiedIndex(null), 1500); 
                               }}
                             />
                           </span>
@@ -449,19 +353,12 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                  </p>
+                  </div>
                 </div>
               ))}
-
               {loading && (
                 <div className="flex justify-start items-center space-x-2 mt-6 text-zinc-400">
-                  <Image
-                    alt="loading"
-                    src="/assets/orb2.png"
-                    width={18}
-                    height={18}
-                    className="animate-spin"
-                  />
+                  <Image alt="loading" src="/assets/orb2.png" width={18} height={18} className="animate-spin" />
                   <p>I&apos;m thinking...</p>
                 </div>
               )}
@@ -469,14 +366,12 @@ export default function Home() {
             </div>
           </div>
         )}
-
         <div
-          className={`${
-            isDark ? "bg-[#1c1c1c]" : "bg-[#f8f8fe]  border-[0.5px] border-zinc-600"
-          }
-          w-full max-w-[800px] rounded-2xl p-3 sm:p-4 mt-6 
-          ${messages.length > 0 ? "md:sticky md:bottom-4" : ""} 
-          mx-2 sm:mx-0`}
+          className={cn(
+            "w-full max-w-[1200px] xl:max-w-[800px] rounded-2xl p-3 sm:p-4 mt-4 mx-2 sm:mx-0",
+            "bg-background text-foreground border border-border",
+            messages.length > 0 && "absolute bottom-4"
+          )}
         >
           <textarea
             value={input || transcript}
@@ -484,80 +379,55 @@ export default function Home() {
             onKeyDown={handleKeyDown}
             placeholder="Ask Securum"
             rows={1}
-            className={`w-full resize-none min-h-[20px] focus:outline-none focus:ring-0 bg-transparent
-            ${isDark ? "text-white" : "text-black"} text-sm sm:text-base`}
+            className="w-full resize-none min-h-[44px] rounded-xl px-4 py-3 focus:outline-none focus:ring-0 bg-transparent text-foreground text-sm sm:text-base"
           />
           <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
-            <div className={`flex flex-wrap items-center gap-2 text-sm ${isRecording ? "hidden" : ""}`}>
+            <div className={cn("flex flex-wrap items-center gap-2 text-sm", isRecording && "hidden")}>
               {selectedFile && (
-                <div className="flex items-center border border-stone-700 rounded-lg px-2 py-1 select-none max-w-full">
+                <div className="flex items-center border border-border rounded-lg px-2 py-1 select-none max-w-full">
                   <FileMinus className="shrink-0" />
                   <p className="text-xs ml-1 truncate">{selectedFile.name}</p>
                 </div>
               )}
-              <label
-                className={`border rounded-lg cursor-pointer px-2 py-2 ${
-                  isDark ? "text-white border-stone-700" : "text-stone-600 border-stone-500"
-                }`}
-              >
+              <label className="border border-border text-foreground/80 rounded-lg cursor-pointer px-2 py-2">
                 + Add file
                 <input type="file" accept=".log,.txt" onChange={handleFileChange} className="hidden" />
               </label>
-
               <button
                 onClick={() => setShowQuiz(true)}
-                className={`border rounded-lg px-2 py-2 ${
-                  isDark ? "text-white border-stone-700" : "text-stone-600 border-stone-500"
-                } flex items-center`}
+                className="border border-border text-foreground/80 rounded-lg px-2 py-2 flex items-center"
               >
                 <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
               </button>
             </div>
-
-            <div className={`flex items-center gap-3 ${isRecording ? "w-full" : ""}`}>
+            <div className={cn("flex items-center gap-3", isRecording && "w-full")}>
               {isRecording ? (
                 <>
-                  <X
-                    className={`size-[22px] cursor-pointer ${isDark ? "text-stone-300" : "text-stone-600"}`}
-                    onClick={() => {
-                      handleRecording();
-                      stopWaveform();
-                    }}
-                  />
+                  <X className="size-[22px] cursor-pointer text-muted-foreground" onClick={() => { handleRecording(); stopWaveform(); }} />
                   <canvas ref={canvasRef} className="w-full h-10" />
                 </>
               ) : (
-                <Mic
-                  className={`size-[22px] cursor-pointer ${isDark ? "text-stone-300" : "text-stone-600"}`}
-                  onClick={() => {
-                    handleRecording(); /* waveform starts inside handleRecording */
-                  }}
-                />
+                <Mic className="size-[22px] cursor-pointer text-muted-foreground" onClick={() => { handleRecording(); }} />
               )}
-
-              <SendHorizontal
-                className={`size-[22px] cursor-pointer ${isDark ? "text-stone-300" : "text-stone-600"}`}
-                onClick={handleSend}
-              />
+              <SendHorizontal className="size-[22px] cursor-pointer text-muted-foreground" onClick={handleSend} />
             </div>
           </div>
         </div>
-
-        {showQuiz && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-            <div className="relative bg-black/60 border border-white/10 rounded-2xl shadow-2xl w-full h-[400px] max-w-4xl p-6 backdrop-blur-md transition-transform transform scale-100 hover:scale-[1.01]">
-              <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
-              <button
-                onClick={() => setShowQuiz(false)}
-                className="absolute top-4 right-4 text-red-500 w-8 h-8 flex items-center justify-center hover:text-red-600 transition-colors"
-              >
-                ✕
-              </button>
-              <Quizz />
-            </div>
-          </div>
-        )}
+        <Dialog open={showQuiz} onOpenChange={setShowQuiz}>
+          <DialogPortal>
+            <DialogTitle></DialogTitle>
+            <DialogOverlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
+            <DialogContent
+              className="fixed left-1/2 top-1/2 z-50 w-[min(94vw,980px)] -translate-x-1/2 -translate-y-1/2 p-0 bg-transparent border-0 shadow-none outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:zoom-in-90 data-[state=closed]:zoom-out-90"
+            >
+              <div className="relative rounded-[24px] border border-border/60 bg-background/80 shadow-2xl backdrop-blur-xl">
+                <div className="pointer-events-none absolute -top-10 right-0 h-80 w-80 rounded-full bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-20 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-8 -left-10 z-[-1] h-60 w-90 rounded-t-full bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 blur-3xl" />
+                <Quizz/>
+              </div>
+            </DialogContent>
+          </DialogPortal>
+        </Dialog>
       </main>
     </div>
   );
