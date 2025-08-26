@@ -301,8 +301,11 @@ export default function Home() {
           signOut={signOut}
         />
        </div>
+       <div>
+        
+       </div>
         {messages.length === 0 ? (
-          <div className="text-center flex flex-col items-center mt-24 w-full max-w-[1200px] xl:max-w-[800px] px-4">
+          <div className="text-center flex flex-col items-center mt-24 w-full max-w-[1200px] xl:max-w-[900px] px-4">
             <Image src="/assets/orb2.png" alt="orb" height={160} width={176} className="h-40 w-44 sm:h-52 sm:w-56" />
             <h1 className="text-3xl sm:text-6xl font-medium mt-4">
               Welcome{" "}
@@ -314,12 +317,12 @@ export default function Home() {
             <h2 className="text-base sm:text-lg mt-2">Be knowledgeable with <i>Securum</i></h2>
           </div>
         ) : (
-          <div className={`text-center flex flex-col items-center mt-[50px]  w-full max-w-[1200px] xl:max-w-[800px] ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
+          <div className={`text-center flex flex-col items-center mt-[50px]  w-full md:max-w-[600px] lg:max-w-[700px] xl:max-w-[900px] ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
             <div className={`w-full relative text-start text-[15px]/[26px] max-h-[calc(100vh-240px)] overflow-y-auto`}>
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex mt-4 sm:mt-6 px-1 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`p-2 sm:p-3 rounded-md max-w-[95%] md:max-w-[900px] xl:max-w-[1100px] break-words
+                    className={`p-2 sm:p-3 rounded-md max-w-[80%]  break-words
                     ${
                       msg.type === "user"
                       ? (isDark ? "bg-zinc-700" : "bg-stone-200 border-[0.5px] border-zinc-200 p-3")
@@ -366,9 +369,10 @@ export default function Home() {
             </div>
           </div>
         )}
+       
         <div
           className={cn(
-            "w-full max-w-[1200px] xl:max-w-[800px] rounded-2xl p-3 sm:p-4 mt-4 mx-2 sm:mx-0",
+            "w-full max-w-[400px]  md:max-w-[600px] lg:max-w-[700px] xl:max-w-[900px] rounded-2xl p-3 sm:p-4 mt-4 mx-2 sm:mx-0",
             "bg-background text-foreground border border-border",
             messages.length > 0 && "absolute bottom-4"
           )}
@@ -381,7 +385,7 @@ export default function Home() {
             rows={1}
             className="w-full resize-none min-h-[44px] rounded-xl px-4 py-3 focus:outline-none focus:ring-0 bg-transparent text-foreground text-sm sm:text-base"
           />
-          <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
+          <div className="w-full flex sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
             <div className={cn("flex flex-wrap items-center gap-2 text-sm", isRecording && "hidden")}>
               {selectedFile && (
                 <div className="flex items-center border border-border rounded-lg px-2 py-1 select-none max-w-full">

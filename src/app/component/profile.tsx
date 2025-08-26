@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { LogOut, LogIn, Bolt, Moon, SunDim } from "lucide-react";
+import { LogOut, LogIn, Bolt, Moon, SunDim, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,7 +23,7 @@ type Props = {
       image?: string | null;
     };
   } | null;
-  userScores: number | null;
+  userScores: number | null; // total marks
   isDark: boolean;
   signOut: () => void;
 };
@@ -39,12 +39,16 @@ export default function ProfileMenu({
   const initials =
     name?.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "U";
 
-
   const { theme, systemTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const current = theme === "system" ? systemTheme : theme;
   const dark = current === "dark";
+
+  // ---- Score -> Stars / Progress ----
+  const score = Math.max(0, Math.floor(userScores ?? 0));        // normalize
+  const stars = Math.min(5, Math.floor(score / 25));             // 1 star per 25, max 3
+  const percent = Math.min(100, Math.max(0, (score / 125) * 100)); 
 
   return (
     <div className="absolute top-4 right-4">
@@ -82,20 +86,68 @@ export default function ProfileMenu({
               </div>
             </div>
           </DropdownMenuLabel>
+
           <DropdownMenuSeparator className="bg-border/60" />
-          <DropdownMenuItem className="gap-2 px-4 py-3">
+
+          {/* Scores summary */}
+          <DropdownMenuItem className="gap-2 px-4 py-3" aria-label="Score summary">
             <Bolt className="h-4 w-4 opacity-80" />
             <span className="truncate">
-              {userScores !== null ? `${userScores} scores` : "No scores"}
+              {userScores !== null ? `${score} marks` : "No scores"}
             </span>
           </DropdownMenuItem>
+
+          {/* Stars + Progress */}
+          <div className="px-4 py-3" role="group" aria-label="Quiz progress">
+            {/* Stars */}
+            <div className="flex items-center gap-1.5 mb-2" aria-label={`${stars} of 5 stars`}>
+              {[0, 1, 2,3,4].map((i) => {
+                const filled = i < stars;
+                return (
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${filled ? "text-yellow-400" : "text-muted-foreground/50"}`}
+                    // lucide Star renders stroke; fill it when active:
+                    style={filled ? { fill: "currentColor" } : {}}
+                    aria-hidden="true"
+                  />
+                );
+              })}
+              <span className="ml-2 text-xs text-muted-foreground">{stars}/5</span>
+            </div>
+
+            {/* Colorful progress bar */}
+            <div className="w-full">
+              <div
+                className="relative h-2.5 w-full rounded-full bg-muted/60 overflow-hidden"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={75}
+                aria-valuenow={score}
+                aria-label="Marks progress"
+                title={`${score} / 125`}
+              >
+                <div
+                  className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500 transition-[width] duration-500 ease-out"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
+                <span>{score} / 125</span>
+                <span>{Math.round(percent)}%</span>
+              </div>
+            </div>
+          </div>
+
+          <DropdownMenuSeparator className="bg-border/60" />
+
+          {/* Theme toggle */}
           <DropdownMenuItem className="px-4 py-2">
             {mounted && (
               <button
                 type="button"
                 onClick={() => setTheme(dark ? "light" : "dark")}
-                className="w-full inline-flex items-center gap-2 rounded-md text-sm
-                           hover:bg-accent transition-colors"
+                className="w-full inline-flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors"
                 aria-pressed={dark}
               >
                 {dark ? <SunDim className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -103,11 +155,14 @@ export default function ProfileMenu({
               </button>
             )}
           </DropdownMenuItem>
+
           <DropdownMenuSeparator className="bg-border/60" />
+
+          {/* Auth action */}
           {session ? (
             <DropdownMenuItem
               onClick={signOut}
-              className="px-4 py-2 gap-2 text-destructive focus:text-destructive"
+              className="px-4 py-2 gap-2 text-destructive focus:text-destructive cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
               <span>Logout</span>

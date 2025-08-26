@@ -119,13 +119,9 @@ export default function Register() {
           </button>
           <p className="text-center text-sm text-stone-400 mt-4">
             By signing up, you agree to our{" "}
-            <span className="cursor-pointer hover:underline text-white">
-              Terms of Service
-            </span>{" "}
-            and{" "}
-            <span className="cursor-pointer hover:underline text-white">
-              Privacy Policy
-            </span>
+            <Link className="cursor-pointer hover:underline text-white" href="/terms&conditions">
+              Terms and Conditions
+            </Link>
           </p>
         </div>
       </div>
