@@ -99,15 +99,11 @@ export default function Login() {
             <span className="ml-2">Sign in with Google</span>
           </button>
 
-          <p className="text-center text-sm text-neutral-600 dark:text-neutral-400 mt-4">
-            By signing in, you agree to our{" "}
-            <span className="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100">
-              Terms of Service
-            </span>{" "}
-            and{" "}
-            <span className="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100">
-              Privacy Policy
-            </span>
+          <p className="text-center text-sm text-stone-400 mt-4">
+            By signing up, you agree to our{" "}
+            <Link className="cursor-pointer hover:underline text-white" href="/terms&conditions">
+              Terms and Conditions
+            </Link>
           </p>
         </div>
       </div>

@@ -1,10 +1,13 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-
+import ProfileMenu from "../component/profile";
 export default function TermsConditions() {
   return (
     <main className="min-h-screen px-6 py-10 relative">
+      <ProfileMenu session={null} userScores={null} isDark={false} signOut={function (): void {
+        throw new Error("Function not implemented.");
+      } }/>
       <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
 
