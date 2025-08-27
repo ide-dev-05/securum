@@ -3,6 +3,7 @@ import axios from "axios";
 import { useSession, signOut } from "next-auth/react";
 import ProfileMenu from "./component/profile";
 import { useTheme } from "next-themes";
+import Markdown from "react-markdown"
 declare module "next-auth" {
   interface Session {
     user: {
@@ -317,19 +318,21 @@ export default function Home() {
             <h2 className="text-base sm:text-lg mt-2">Be knowledgeable with <i>Securum</i></h2>
           </div>
         ) : (
-          <div className={`text-center flex flex-col items-center mt-[50px]  w-full md:max-w-[600px] lg:max-w-[700px] xl:max-w-[900px] ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
-            <div className={`w-full relative text-start text-[15px]/[26px] max-h-[calc(100vh-240px)] overflow-y-auto`}>
+          <div className={`text-center flex flex-col items-center mt-[50px]  w-full md:max-w-[600px] lg:max-w-[700px] xl:max-w-[900px]  ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
+            <div className={`w-full relative text-start text-[16px]/[28px] max-h-[calc(100vh-240px)] overflow-y-auto`}>
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex mt-4 sm:mt-6 px-1 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`p-2 sm:p-3 rounded-md max-w-[80%]  break-words
+                    className={`p-2 sm:p-3 rounded-md max-w-[90%]  break-words
                     ${
                       msg.type === "user"
                       ? (isDark ? "bg-zinc-700" : "bg-stone-200 border-[0.5px] border-zinc-200 p-3")
                       : ""
                     }`}
                   >
-                    {msg.text}
+                    <Markdown>
+                      {msg.text}
+                    </Markdown>
                     {msg.type === "bot" && (
                       <div className="flex items-center space-x-2 mt-2">
                         {copiedIndex === idx ? (
