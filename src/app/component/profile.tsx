@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { LogOut, LogIn, Bolt, Moon, SunDim, Star } from "lucide-react";
+import { LogOut, LogIn, Bolt, Moon, SunDim, Star ,Languages} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,7 +23,7 @@ type Props = {
       image?: string | null;
     };
   } | null;
-  userScores: number | null; // total marks
+  userScores: number | null; 
   isDark: boolean;
   signOut: () => void;
 };
@@ -40,12 +40,13 @@ export default function ProfileMenu({
     name?.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase() || "U";
 
   const { theme, systemTheme, setTheme } = useTheme();
+  const [translate, setTranslate] = useState("Myanamar");
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const current = theme === "system" ? systemTheme : theme;
   const dark = current === "dark";
 
-  // ---- Score -> Stars / Progress ----
+
   const score = Math.max(0, Math.floor(userScores ?? 0));        // normalize
   const stars = Math.min(5, Math.floor(score / 25));             // 1 star per 25, max 3
   const percent = Math.min(100, Math.max(0, (score / 125) * 100)); 
@@ -71,7 +72,7 @@ export default function ProfileMenu({
           sideOffset={8}
           className="w-60 p-0 rounded-2xl border border-border/60 bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-md overflow-hidden"
         >
-          {/* Header */}
+          
           <DropdownMenuLabel className="px-4 py-3">
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 rounded-xl">
@@ -89,7 +90,7 @@ export default function ProfileMenu({
 
           <DropdownMenuSeparator className="bg-border/60" />
 
-          {/* Scores summary */}
+  
           <DropdownMenuItem className="gap-2 px-4 py-3" aria-label="Score summary">
             <Bolt className="h-4 w-4 opacity-80" />
             <span className="truncate">
@@ -97,7 +98,7 @@ export default function ProfileMenu({
             </span>
           </DropdownMenuItem>
 
-          {/* Stars + Progress */}
+          
           <div className="px-4 py-3" role="group" aria-label="Quiz progress">
             {/* Stars */}
             <div className="flex items-center gap-1.5 mb-2" aria-label={`${stars} of 5 stars`}>
@@ -107,7 +108,6 @@ export default function ProfileMenu({
                   <Star
                     key={i}
                     className={`h-4 w-4 ${filled ? "text-yellow-400" : "text-muted-foreground/50"}`}
-                    // lucide Star renders stroke; fill it when active:
                     style={filled ? { fill: "currentColor" } : {}}
                     aria-hidden="true"
                   />
@@ -116,7 +116,6 @@ export default function ProfileMenu({
               <span className="ml-2 text-xs text-muted-foreground">{stars}/5</span>
             </div>
 
-            {/* Colorful progress bar */}
             <div className="w-full">
               <div
                 className="relative h-2.5 w-full rounded-full bg-muted/60 overflow-hidden"
@@ -140,8 +139,21 @@ export default function ProfileMenu({
           </div>
 
           <DropdownMenuSeparator className="bg-border/60" />
+          <DropdownMenuItem asChild className="px-4 py-2 gap-2">
+            {mounted && (
+              <button
+                type="button"
+                onClick={() => setTranslate(translate === "English" ? "Myanamar" : "English")}
+                className="w-full inline-flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors"
+                aria-pressed={translate === "Myanamar"}
+              >
+                <Languages className="h-4 w-4" />
+                <span className="truncate">{translate}</span>
+              </button>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-border/60" />
 
-          {/* Theme toggle */}
           <DropdownMenuItem className="px-4 py-2">
             {mounted && (
               <button
