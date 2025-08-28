@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { SheetClose } from "@/components/ui/sheet"
+import { translations } from "../translations"; 
 interface ChatSession {
   session_id: number
   title: string | null
@@ -18,6 +19,7 @@ interface ChatSession {
 interface SidebarProps {
   onSelectSession: (sessionId: number, messages: { role: string; text: string }[]) => void
   currentSessionId?: number | null
+  language: "en" | "my";
   apiBaseUrl?: string
 }
 function cn(...classes: (string | false | null | undefined)[]) {
@@ -27,11 +29,12 @@ function cn(...classes: (string | false | null | undefined)[]) {
 export default function Sidebar({
   onSelectSession,
   currentSessionId = null,
+  language,
   apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000",
 }: SidebarProps) {
   const { data: auth } = useSession()
   const userId = (auth as any)?.user?.id
-
+  const t = translations[language];
   const [expand, setExpand] = useState(false)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(false)
@@ -46,28 +49,49 @@ export default function Sidebar({
     setIsDark(dm === "true")
   }, [])
 
+  // const fetchSessions = async () => {
+  //   if (!userId) return
+  //   cancelRef.current?.cancel("new-request")
+  //   cancelRef.current = axios.CancelToken.source()
+  //   try {
+  //     setLoading(true)
+  //     setError(null)
+  //     const res = await axios.get(`${apiBaseUrl}/chat/sessions/${userId}`, {
+  //       cancelToken: cancelRef.current.token,
+  //     })
+  //     setSessions(Array.isArray(res.data) ? res.data : [])
+  //   } catch (err) {
+  //     if (axios.isCancel(err)) return
+  //     const e = err as AxiosError
+  //     console.error("Error fetching sessions:", e)
+  //     setError("Could not load sessions")
+  //     setSessions([])
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
   const fetchSessions = async () => {
-    if (!userId) return
-    cancelRef.current?.cancel("new-request")
-    cancelRef.current = axios.CancelToken.source()
+    if (!userId) return;
+    cancelRef.current?.cancel("new-request");
+    cancelRef.current = axios.CancelToken.source();
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       const res = await axios.get(`${apiBaseUrl}/chat/sessions/${userId}`, {
         cancelToken: cancelRef.current.token,
-      })
-      setSessions(Array.isArray(res.data) ? res.data : [])
+      });
+      setSessions(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      if (axios.isCancel(err)) return
-      const e = err as AxiosError
-      console.error("Error fetching sessions:", e)
-      setError("Could not load sessions")
-      setSessions([])
+      if (axios.isCancel(err)) return;
+      console.error("Error fetching sessions:", err);
+      setError("Could not load sessions");
+      setSessions([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
+  };
+  
   useEffect(() => {
     fetchSessions()
   }, [userId, apiBaseUrl])
@@ -85,26 +109,59 @@ export default function Sidebar({
     }
   }
 
-  const handleCreate = async () => {
-    if (!userId) return
-    try {
-      setCreating(true)
-      const res = await axios.post(`${apiBaseUrl}/chat/session`, {
-        user_id: userId,
-        title: "New Chat",
-      })
-      const sid = res.data?.session_id
-      if (sid) {
-        await fetchSessions()
-        onSelectSession(sid, [])
-      }
-    } catch (err) {
-      console.error("Error creating new chat session:", err)
-    } finally {
-      setCreating(false)
-    }
-  }
+  // const handleCreate = async () => {
+  //   if (!userId) return;
+  //   try {
+  //     setCreating(true);
+  //     const res = await axios.post(`${apiBaseUrl}/chat/session`, {
+  //       user_id: userId,
+  //       title: "New Chat",
+  //     });
+  //     const sid = res.data?.session_id;
+  //     if (sid) {
+  //       await fetchSessions();
+  //       onSelectSession(sid, []);
+  //     }
+  //   } catch (err) {
+  //     console.error("Error creating new chat session:", err);
+  //   } finally {
+  //     setCreating(false);
+  //   }
+  // };
 
+  const handleCreate = async () => {
+    if (!userId) return;
+    try {
+      setCreating(true);
+  
+      const formData = new FormData();
+      formData.append("user_id", userId);  // must be string
+      formData.append("title", "New Chat");
+  
+      const res = await axios.post(`${apiBaseUrl}/chat/session`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data", // important for FormData
+        },
+      });
+  
+      const sid = res.data?.session_id;
+      if (sid) {
+        await fetchSessions(); // refresh session list
+        onSelectSession(sid, []); // select the new session
+      }
+    } catch (err: any) {
+      console.error("Error creating new chat session:", err.response?.data || err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+  
+  
+
+  useEffect(() => {
+    if (currentSessionId) fetchSessions();
+  }, [currentSessionId]);  
+  
   function PrimaryNav() {
     return (
       <ul className="mt-2 w-full space-y-1 px-2">
@@ -122,7 +179,7 @@ export default function Sidebar({
             {creating ? <Loader2 className="h-5 w-5 animate-spin" /> : <SquarePen className="h-5 w-5" />}
             {expand && (
               <span className="whitespace-nowrap transition-opacity duration-200">
-                New chat
+                {t.newChat}
               </span>
             )}
           </button>
@@ -184,7 +241,7 @@ export default function Sidebar({
    
         <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">Chats</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground">{t.chats}</h2>
 
             <div className="flex items-center gap-2">
             
@@ -294,7 +351,7 @@ export default function Sidebar({
             expand ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1"
           )}
         >
-          Chats
+          {t.chats}
         </div>
 
         <ChatsList />
@@ -355,7 +412,7 @@ export default function Sidebar({
 
         <SheetContent side="left" className="flex h-dvh w-[88vw] max-w-[22rem] flex-col p-0 md:hidden">
           <SheetHeader className="sr-only">
-            <SheetTitle>Chats</SheetTitle>
+            <SheetTitle>{t.chats}</SheetTitle>
           </SheetHeader>
 
           <MobileSidebarBody />

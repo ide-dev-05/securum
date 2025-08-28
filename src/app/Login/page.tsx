@@ -101,7 +101,7 @@ export default function Login() {
 
           <p className="text-center text-sm text-stone-400 mt-4">
             By signing up, you agree to our{" "}
-            <Link className="cursor-pointer hover:underline text-white" href="/terms&conditions">
+            <Link className="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100" href="/terms&conditions">
               Terms and Conditions
             </Link>
           </p>

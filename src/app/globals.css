@@ -130,3 +130,7 @@ button{
   }
 }
 
+/* globals.css or any imported CSS */
+#__next_dev_overlay {
+  display: none !important;
+}

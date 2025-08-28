@@ -2,6 +2,7 @@
 import axios from "axios";
 import { useSession, signOut } from "next-auth/react";
 import ProfileMenu from "./component/profile";
+import { translations } from "./translations";
 import { useTheme } from "next-themes";
 import Markdown from "react-markdown"
 declare module "next-auth" {
@@ -67,7 +68,7 @@ declare global {
   }
 }
 
-export default function Home() {
+export default function Home({ fetchSessions }: { fetchSessions: () => Promise<void> }) {
   const { data: session } = useSession();
   const [showQuiz, setShowQuiz] = useState<boolean>(false);
   const [userScores, setUserScores] = useState<number | null>(null);
@@ -75,7 +76,7 @@ export default function Home() {
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [transcript, setTranscript] = useState<string>("");
+  // const [transcript, setTranscript] = useState<string>("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -86,9 +87,13 @@ export default function Home() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [language, setLanguage] = useState<"en" | "my">("en");
   const { theme, systemTheme } = useTheme();
   const resolvedTheme = theme === "system" ? systemTheme : theme;
   const isDark = resolvedTheme === "dark";
+  const t = translations[language];
+
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -102,6 +107,22 @@ export default function Home() {
       }
     }
   }, [messages, currentSessionId]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedLang = localStorage.getItem("language") as "en" | "my";
+      if (savedLang) {
+        setLanguage(savedLang);
+      }
+    }
+  }, []);
+  
+  // save whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("language", language);
+    }
+  }, [language]);
 
   useEffect(() => {
     const savedMessages = localStorage.getItem("chat_messages");
@@ -122,23 +143,30 @@ export default function Home() {
 
     recognition.onresult = (e: SpeechRecognitionEvent) => {
       const lastResult = e.results[e.results.length - 1][0].transcript;
-      setTranscript(lastResult);
+      // setTranscript(lastResult);
+      setInput(lastResult);
     };
 
     recognition.start();
     recognitionRef.current = recognition;
   };
 
+  // const stopRecording = () => {
+  //   if (recognitionRef.current) {
+  //     recognitionRef.current.stop();
+  //   }
+  //   setIsRecording(false);
+  //   if (transcript.trim() !== "") {
+  //     setInput(transcript);
+  //     // setTranscript("");
+  //   }
+  // };
+
   const stopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    if (recognitionRef.current) recognitionRef.current.stop();
     setIsRecording(false);
-    if (transcript.trim() !== "") {
-      setInput(transcript);
-      setTranscript("");
-    }
   };
+  
   const handleRecording = () => {
     if (!isRecording) {
       startRecording();
@@ -162,43 +190,58 @@ export default function Home() {
         .catch((err) => console.error("Error fetching user data:", err));
     }
   }, [session]);
+  
+  
 
   const handleSend = async () => {
-    setInput("");
     stopRecording();
-    if ((!input.trim() && !selectedFile) || !session?.user?.id) return;
-
+    if (!input.trim() && !selectedFile) return;
+  
     const newUserMessage = { type: "user", text: input || `[Uploaded file: ${selectedFile?.name}]` };
     setMessages((prev) => [...prev, newUserMessage]);
     setLoading(true);
-    console.log(messages.length)
-
+  
     try {
       const formData = new FormData();
       formData.append("prompt", input || "");
-      formData.append("user_id", session.user.id.toString());
-      if (currentSessionId) formData.append("session_id", currentSessionId.toString());
-      if (selectedFile) formData.append("file", selectedFile);
-
-      const res = await axios.post("http://localhost:8000/chat/message", formData, {
+      
+      // Use session user ID if logged in, else mark as guest
+      const isGuest = !session?.user?.id;
+      const userId = session?.user?.id || `guest_${crypto.randomUUID()}`;
+      formData.append("user_id", userId);
+      formData.append("guest", isGuest.toString()); // Add guest flag
+  
+      // Only append session_id for logged-in users
+      if (!isGuest && currentSessionId) {
+        formData.append("session_id", currentSessionId.toString());
+      }
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      }
+  
+      const res = await axios.post(`http://localhost:8000/chat/message`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
-      const botMessage = { type: "bot", text: res.data.response };
-      setMessages((prev) => [...prev, botMessage]);
-
-      if (!currentSessionId) {
+  
+      const botResponse = res.data?.response || "No response from server.";
+      setMessages((prev) => [...prev, { type: "bot", text: botResponse }]);
+  
+      // Only update session ID and fetch sessions for logged-in users
+      if (!isGuest && !currentSessionId && res.data.session_id) {
         setCurrentSessionId(res.data.session_id);
+        await fetchSessions(); // Refresh sessions in sidebar
       }
-    } catch (err) {
-      console.error("Error sending chat message:", err);
-    } finally {
+  
       setInput("");
       setSelectedFile(null);
+    } catch (err) {
+      console.error("Error sending message:", err.response?.data || err.message);
+    } finally {
       setLoading(false);
     }
   };
 
+  
   const handleKeyDown = (e: { key: string; shiftKey: unknown; preventDefault: () => void }) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -206,10 +249,20 @@ export default function Home() {
     }
   };
 
-  const handleSelectSession = (sessionId: number, sessionMessages: { role: string; text: string }[]) => {
-    setCurrentSessionId(sessionId);
-    setMessages(sessionMessages.map((m) => ({ type: m.role === "user" ? "user" : "bot", text: m.text })));
+  const handleSelectSession = async (sessionId: number) => {
+    try {
+      const res = await axios.get(`http://localhost:8000/chat/messages/${sessionId}`);
+      const msgs = (res.data || []).map((m: any) => ({
+        type: m.role === "user" ? "user" : "bot",
+        text: m.content
+      }));
+      setMessages(msgs);
+      setCurrentSessionId(sessionId); // ✅ important!
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    }
   };
+  
 
   const startWaveform = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -278,7 +331,21 @@ export default function Home() {
     utterance.lang = "en-US";
     window.speechSynthesis.speak(utterance);
   };
+  const clearChat = () => {
+    setMessages([]);
+    setCurrentSessionId(null);
+    localStorage.removeItem("chat_messages");
+    localStorage.removeItem("current_session_id");
+  };
 
+  // useEffect(() => {
+  //   if (session?.user?.id) {
+  //     // User just logged in
+  //     clearChat(); // clear guest messages
+  //     setCurrentSessionId(null); // ensure new chat
+  //   }
+  // }, [session?.user?.id]);
+  
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -289,7 +356,11 @@ export default function Home() {
     <div className="font-sans flex items-center min-h-screen overflow-hidden">
       <div className="absolute top-[-40px] right-0 w-80 h-80 bg-gradient-to-br from-blue-500 via-cyan-500 to-transparent opacity-18 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute z-[-1] bottom-0 left-[-130px] w-90 h-60 bg-gradient-to-tl from-purple-500 via-pink-600 to-transparent opacity-15 rounded-t-full blur-3xl pointer-events-none"></div>
-      <Sidebar onSelectSession={handleSelectSession} />
+      {/* <Sidebar onSelectSession={handleSelectSession} currentSessionId={currentSessionId} language={language} /> */}
+      {session?.user ? (
+      <Sidebar onSelectSession={handleSelectSession} currentSessionId={currentSessionId} language={language} />
+    ) : null}
+
       <main className="relative flex flex-col items-center w-full min-h-screen px-3 sm:px-6">
        <div className="flex flex-row">
        <p className="font-sans cursor-pointer absolute top-2 left-4 text-xl sm:text-2xl font-thin hidden md:block">
@@ -299,7 +370,13 @@ export default function Home() {
           session={session}
           userScores={userScores}
           isDark={isDark}
-          signOut={signOut}
+          signOut={() => {
+            clearChat();
+            signOut(); 
+          }}
+          language={language}       
+          setLanguage={setLanguage}
+          clearChat={clearChat}
         />
        </div>
        <div>
@@ -307,15 +384,15 @@ export default function Home() {
        </div>
         {messages.length === 0 ? (
           <div className="text-center flex flex-col items-center mt-24 w-full max-w-[1200px] xl:max-w-[900px] px-4">
-            <Image src="/assets/orb2.png" alt="orb" height={160} width={176} className="h-40 w-44 sm:h-52 sm:w-56" />
+            <Image src="/assets/orb2.png" alt="orb" height={160} width={176} className="h-40 w-44 sm:h-55 sm:w-56" />
             <h1 className="text-3xl sm:text-6xl font-medium mt-4">
-              Welcome{" "}
+              {t.welcome}{" "}
               <span className="underline text-2xl sm:text-4xl text-[#7bdcde] font-normal">
                 {session?.user?.name || "Guest"}
               </span>
               !
             </h1>
-            <h2 className="text-base sm:text-lg mt-2">Be knowledgeable with <i>Securum</i></h2>
+            <h2 className="text-base sm:text-lg mt-4">{t.knowledge} <i>Securum</i></h2>
           </div>
         ) : (
           <div className={`text-center flex flex-col items-center mt-[50px]  w-full md:max-w-[600px] lg:max-w-[700px] xl:max-w-[900px]  ${isDark ? '' : 'text-black'} px-2 sm:px-0`}>
@@ -381,10 +458,10 @@ export default function Home() {
           )}
         >
           <textarea
-            value={input || transcript}
+            value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Securum"
+            placeholder={t.askPlaceholder}
             rows={1}
             className="w-full resize-none min-h-[44px] rounded-xl px-4 py-3 focus:outline-none focus:ring-0 bg-transparent text-foreground text-sm sm:text-base"
           />
@@ -397,14 +474,14 @@ export default function Home() {
                 </div>
               )}
               <label className="border border-border text-foreground/80 rounded-lg cursor-pointer px-2 py-2">
-                + Add file
+                + {t.addFile}
                 <input type="file" accept=".log,.txt" onChange={handleFileChange} className="hidden" />
               </label>
               <button
                 onClick={() => setShowQuiz(true)}
                 className="border border-border text-foreground/80 rounded-lg px-2 py-2 flex items-center"
               >
-                <Puzzle className="size-[14px] mr-[4px]" /> Take quiz
+                <Puzzle className="size-[14px] mr-[4px]" />{t.takeQuiz}
               </button>
             </div>
             <div className={cn("flex items-center gap-3", isRecording && "w-full")}>

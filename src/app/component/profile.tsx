@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import {translations} from "../translations"
 
 type Props = {
   session: {
@@ -26,12 +27,15 @@ type Props = {
   userScores: number | null; 
   isDark: boolean;
   signOut: () => void;
+  language: "en" | "my";
+  setLanguage: (lang: "en" | "my") => void;
+  clearChat:()=>void
 };
 
 export default function ProfileMenu({
   session,
   userScores,
-  signOut,
+  signOut, language, setLanguage,clearChat
 }: Props) {
   const name = session?.user?.name || "Guest";
   const email = session?.user?.email || "";
@@ -45,12 +49,15 @@ export default function ProfileMenu({
   useEffect(() => setMounted(true), []);
   const current = theme === "system" ? systemTheme : theme;
   const dark = current === "dark";
-
-
-  const score = Math.max(0, Math.floor(userScores ?? 0));        // normalize
-  const stars = Math.min(5, Math.floor(score / 25));             // 1 star per 25, max 3
+  const t=translations[language];
+  const score = Math.max(0, Math.floor(userScores ?? 0));        
+  const stars = Math.min(5, Math.floor(score / 25));            
   const percent = Math.min(100, Math.max(0, (score / 125) * 100)); 
 
+  const toggleLanguage = () => {
+    setLanguage(language === "en" ? "my" : "en");
+  };
+  
   return (
     <div className="absolute top-4 right-4">
       <DropdownMenu>
@@ -94,7 +101,7 @@ export default function ProfileMenu({
           <DropdownMenuItem className="gap-2 px-4 py-3" aria-label="Score summary">
             <Bolt className="h-4 w-4 opacity-80" />
             <span className="truncate">
-              {userScores !== null ? `${score} marks` : "No scores"}
+              {userScores !== null ? `${score} ${t.marks}` : "No Scores"}
             </span>
           </DropdownMenuItem>
 
@@ -143,12 +150,12 @@ export default function ProfileMenu({
             {mounted && (
               <button
                 type="button"
-                onClick={() => setTranslate(translate === "English" ? "Myanamar" : "English")}
+                onClick={toggleLanguage}
                 className="w-full inline-flex items-center gap-2 rounded-md text-sm hover:bg-accent transition-colors"
-                aria-pressed={translate === "Myanamar"}
+                aria-pressed={language === "my"}
               >
                 <Languages className="h-4 w-4" />
-                <span className="truncate">{translate}</span>
+                <span className="truncate">{language === "en" ? "မြန်မာ" :  "English"}</span>
               </button>
             )}
           </DropdownMenuItem>
@@ -163,7 +170,7 @@ export default function ProfileMenu({
                 aria-pressed={dark}
               >
                 {dark ? <SunDim className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                <span className="truncate">{dark ? "Light" : "Dark"}</span>
+                <span className="truncate">{dark ? `Light` : `Dark`}</span>
               </button>
             )}
           </DropdownMenuItem>
@@ -177,10 +184,10 @@ export default function ProfileMenu({
               className="px-4 py-2 gap-2 text-destructive focus:text-destructive cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <span>LogOut</span>
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem asChild className="px-4 py-2 gap-2">
+            <DropdownMenuItem asChild className="px-4 py-2 gap-2" onClick={clearChat}>
               <Link href="/login" className="flex items-center gap-2">
                 <LogIn className="h-4 w-4 text-destructive" />
                 <span className="hover:text-destructive">Log In</span>

@@ -59,10 +59,10 @@ export default function Register() {
       } }/>
       <div className="flex flex-col items-center justify-center mt-20">
         <div className="w-full max-w-sm  p-8">
-          <h1 className="text-3xl font-bold text-center">Warmly welcome!</h1>
+          <h1 className="text-3xl font-bold text-center text-neutral-900 dark:text-neutral-100">Warmly welcome!</h1>
           <p className="text-center text-sm text-stone-400 mt-2">
             Already have an account?{" "}
-            <Link href='./login' className="cursor-pointer hover:underline text-white">
+            <Link href='./login' className="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100">
               Log In
             </Link>
           </p>
@@ -122,7 +122,7 @@ export default function Register() {
           </button>
           <p className="text-center text-sm text-stone-400 mt-4">
             By signing up, you agree to our{" "}
-            <Link className="cursor-pointer hover:underline text-white" href="/terms&conditions">
+            <Link className="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100" href="/terms&conditions">
               Terms and Conditions
             </Link>
           </p>
