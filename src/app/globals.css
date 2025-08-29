@@ -134,3 +134,7 @@ button{
 #__next_dev_overlay {
   display: none !important;
 }
+
+nextjs-portal {
+  display: none;
+}

@@ -202,6 +202,8 @@ export default function Home({ fetchSessions }: { fetchSessions: () => Promise<v
     setLoading(true);
   
     try {
+      setInput("");
+      
       const formData = new FormData();
       formData.append("prompt", input || "");
       
@@ -231,9 +233,8 @@ export default function Home({ fetchSessions }: { fetchSessions: () => Promise<v
         setCurrentSessionId(res.data.session_id);
         await fetchSessions(); // Refresh sessions in sidebar
       }
-  
-      setInput("");
       setSelectedFile(null);
+      
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err.message);
     } finally {
@@ -257,7 +258,8 @@ export default function Home({ fetchSessions }: { fetchSessions: () => Promise<v
         text: m.content
       }));
       setMessages(msgs);
-      setCurrentSessionId(sessionId); // ✅ important!
+      setCurrentSessionId(sessionId); 
+      await fetchSessions();// ✅ important!
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
@@ -426,8 +428,6 @@ export default function Home({ fetchSessions }: { fetchSessions: () => Promise<v
                             />
                           </span>
                         )}
-                        <ThumbsUp className="size-[16px] text-green-500 cursor-pointer" />
-                        <ThumbsDown className="size-[16px] text-red-500 cursor-pointer" />
                         <span title="Play message">
                           <Volume2
                             className="size-[18px] text-zinc-400 cursor-pointer"

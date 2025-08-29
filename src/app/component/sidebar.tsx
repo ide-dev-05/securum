@@ -158,9 +158,7 @@ export default function Sidebar({
   
   
 
-  useEffect(() => {
-    if (currentSessionId) fetchSessions();
-  }, [currentSessionId]);  
+ 
   
   function PrimaryNav() {
     return (

@@ -118,7 +118,7 @@ async def root():
 
 
 @app.post("/chat/session")
-def create_chat_session(user_id: str = Form(...), title: str = Form("New Chat")):
+def create_chat_session(user_id: str = Form(...), title: str = Form("New Chatt")):
     cursor.execute(
         "INSERT INTO chat_sessions (user_id, title) VALUES (%s, %s) RETURNING id, created_at",
         (user_id, title)
@@ -176,7 +176,7 @@ async def send_chat_message(
     if not session_id:
         title = (prompt[:30] + "...") if len(prompt) > 30 else prompt
         if not title.strip():
-            title = file.filename[:30] + "..." if file else "New Chat"
+            title = file.filename[:30] + "..." if file else "New chat"
         cursor.execute(
             "INSERT INTO chat_sessions (user_id, title) VALUES (%s, %s) RETURNING id",
             (user_id, title)
